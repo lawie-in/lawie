@@ -1082,13 +1082,17 @@ describe('T-507 AC4 GET /me/sessions', () => {
     ]);
   });
 
-  it('new Session rows live for the refresh TTL (7 days), not the access TTL', async () => {
+  it('new Session rows live for the refresh TTL (T-616b: 12 h sliding), not the access TTL', async () => {
     const s = await seed();
     await login(s.email);
     const row = await Session.findOne({ userId: s.userId }).lean();
     const ms = row!.expiresAt.getTime() - Date.now();
-    expect(ms).toBeGreaterThan(6.9 * 24 * 3600 * 1000);
-    expect(ms).toBeLessThanOrEqual(7 * 24 * 3600 * 1000);
+    expect(ms).toBeGreaterThan(11.9 * 3600 * 1000);
+    expect(ms).toBeLessThanOrEqual(12 * 3600 * 1000);
+    // and it is the refresh key's TTL, not the 15-minute access one
+    expect(ms).toBeGreaterThan(60 * 60 * 1000);
+    // the ceiling counts from this sign-in
+    expect(row!.originalCreatedAt).toBeInstanceOf(Date);
   });
 
   it('401 without a token or with a revoked one', async () => {

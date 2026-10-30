@@ -34,7 +34,13 @@ describe('T-220 AC4 retry policy (unit)', () => {
       id: 'j1',
       queueName: 'email-low',
       attemptsMade: 0,
-      data: { template: 'auth.welcome', to: ['a@example.com'], cc: [], bcc: [], data: {} },
+      data: {
+        template: 'billing.lowCreditWarning',
+        to: ['a@example.com'],
+        cc: [],
+        bcc: [],
+        data: {},
+      },
     } as never;
     await expect(createProcessor(send)(job, 't')).rejects.toBe(boom);
     expect(send).toHaveBeenCalledTimes(1);
@@ -47,7 +53,13 @@ describe('T-220 AC4 retry policy (unit)', () => {
       id: 'j2',
       queueName: 'email-low',
       attemptsMade: 0,
-      data: { template: 'auth.welcome', to: ['a@example.com'], cc: [], bcc: [], data: {} },
+      data: {
+        template: 'billing.lowCreditWarning',
+        to: ['a@example.com'],
+        cc: [],
+        bcc: [],
+        data: {},
+      },
     } as never;
     await expect(createProcessor(send)(job, 't')).rejects.toThrow('Error in email send');
     expect(send).toHaveBeenCalledTimes(1);
@@ -55,7 +67,7 @@ describe('T-220 AC4 retry policy (unit)', () => {
 
   it('low tier: 3 attempts, exponential from 5000 ms, failed jobs kept 30 days', async () => {
     const { enqueueEmail } = await import('@lawie/email-client');
-    await enqueueEmail({ template: 'auth.welcome', to: 'a@example.com', data: {} });
+    await enqueueEmail({ template: 'billing.lowCreditWarning', to: 'a@example.com', data: {} });
     expect(adds.at(-1)?.opts).toMatchObject({
       attempts: 3,
       backoff: { type: 'exponential', delay: 5000 },

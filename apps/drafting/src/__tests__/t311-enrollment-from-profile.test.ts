@@ -28,6 +28,7 @@ import app from '../app';
 import logger from '../config/logger';
 import { AppSetting } from '../models/AppSetting.model';
 import { User } from '../models/User.model';
+import { seedCourts } from './seedCourts';
 import { createVerifiedUser } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import * as aiService from '../services/ai.service';
@@ -47,6 +48,9 @@ jest.mock('@anthropic-ai/sdk', () =>
   // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
   require('./sdkStream').sdkModuleStub((...args: unknown[]) => mockMessagesStream(...args)),
 );
+
+// T-686: an id-shaped court with no active row stops the run, so the court is seeded.
+seedCourts('district_sessions_patna');
 
 jest.setTimeout(60_000);
 
@@ -360,7 +364,8 @@ describe('T-311 annexures (Memo of Parties and Vakalatnama)', () => {
       PROFILE_NUM,
     );
     expect(html).not.toContain(FORGED);
-    printedTwice(html, PROFILE_NUM);
+    // T-700: mandamus is civil_other (Memo + Index, no Vakalatnama page), so it prints once.
+    expect(count(html, PROFILE_NUM)).toBe(1);
   });
   it('default_bail declares advocate_enrollment (T-382): a typed one prints', async () => {
     const html = await annexuresHtml(

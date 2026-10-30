@@ -98,7 +98,17 @@
             "type": "date",
             "required": false,
             "show_if": "currently_in_custody !== no",
-            "inject_into": ["ai_prompt"]
+            "inject_into": ["ai_prompt"],
+            "question": "Since what date has the applicant been in custody (the date of arrest or surrender)?",
+            "ask_when_empty": true,
+            "date_own_meaning_words": [
+              { "word": "since", "position": "before" },
+              { "word": "from", "position": "before" },
+              { "word": "w.e.f.", "position": "before" },
+              { "word": "with effect from", "position": "before" },
+              { "word": "से", "position": "after" },
+              { "word": "se", "position": "after" }
+            ]
           },
           {
             "field_id": "earlier_bail_applications",
@@ -181,7 +191,7 @@
             "label": "Medical condition of the applicant",
             "type": "textarea",
             "required": false,
-            "question": "Does the applicant suffer from any illness, disability or medical condition you want placed before the court? If yes, name it as written in the medical papers. If not, leave it blank.",
+            "question": "Does the applicant have any illness, disability or medical condition you want placed before the court? If yes, name it as written in the medical papers. If not, write \"None\".",
             "ask_when_empty": true
           },
           {
@@ -470,6 +480,22 @@
               {
                 "id": "youth_first_time",
                 "label": "Young person, no prior offence"
+              },
+              {
+                "id": "business_dispute_civil_in_nature",
+                "label": "Dispute is essentially civil in nature"
+              },
+              {
+                "id": "amount_paid_or_deposited",
+                "label": "Amount in dispute paid or deposited (without admission)"
+              },
+              {
+                "id": "only_earning_member",
+                "label": "Only earning member of the family"
+              },
+              {
+                "id": "ready_to_furnish_bail_bond_and_sureties",
+                "label": "Ready to furnish a bail bond and sureties"
               }
             ],
             "inject_into": ["ai_prompt"]

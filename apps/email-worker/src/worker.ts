@@ -64,6 +64,13 @@
  * in job data, meta, the return value, failedReason or Sentry. A BullMQ retry mints again; only
  * the newest link works.
  *
+ * T-587 (Arjun, option A): an auth.welcome job carries the userId only. The processor asks auth
+ * (POST /internal/welcome/prepare, INTERNAL_SECRET) for the address, display name and login URL,
+ * then renders and sends. A 404 (no such user, inactive, being closed, a test account, or no
+ * welcome claimed) completes the job with no send and no Sentry event. Like the reset mail, a
+ * live send needs the supplier street address (footer line 1). The prepare response is never
+ * logged, put in job data, meta, the return value, failedReason or Sentry.
+ *
  * Test seam (T-220 AC4): createProcessor(send, mint, notice, invoiceView, passwordReset) takes the provider send
  * function and the verify-link mint function, and startWorkers({ connection, send }) takes both the Redis
  * connection and the send function, so a test can force a provider error
@@ -224,6 +231,54 @@ export const prepareSignupAttemptViaAuth: PrepareSignupAttemptFn = async (userId
     return { email: body.email, signInUrl: body.signInUrl, resetUrl: body.resetUrl };
   }
   throw new SignupAttemptPrepareError('BAD_RESPONSE');
+};
+
+// ── T-587: welcome mail (auth) ───────────────────────────────────────────────
+
+/** What auth's welcome prepare returns. PII: never log any of it. */
+export interface PreparedWelcome {
+  email: string;
+  /** Display name; '' when auth has none (the template uses its no-name forms). */
+  name: string;
+  loginUrl: string;
+}
+
+/**
+ * Asks auth for the address, display name and login URL for an auth.welcome job. Returns null
+ * on 404 (no such user, deactivated, being closed, a test account, or no welcome claimed): the
+ * job is dropped. Throws a value-free error otherwise, so BullMQ retries.
+ */
+export type PrepareWelcomeFn = (userId: string) => Promise<PreparedWelcome | null>;
+
+class WelcomePrepareError extends Error {
+  readonly code: string;
+  constructor(code: string) {
+    super(`welcome prepare failed: ${code}`);
+    this.name = 'WelcomePrepareError';
+    this.code = code;
+  }
+}
+
+export const prepareWelcomeViaAuth: PrepareWelcomeFn = async (userId) => {
+  let res: Response;
+  try {
+    res = await postToAuth('/internal/welcome/prepare', { userId });
+  } catch (err) {
+    // Network error or timeout. The original message can carry the URL: not kept.
+    const name = (err as { name?: unknown } | null)?.name;
+    throw new WelcomePrepareError(name === 'TimeoutError' ? 'TIMEOUT' : 'NETWORK');
+  }
+  if (res.status === 404) return null;
+  if (!res.ok) throw new WelcomePrepareError(`HTTP_${res.status}`);
+  const body = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+  if (body && nonEmpty(body.email) && nonEmpty(body.loginUrl)) {
+    return {
+      email: body.email,
+      name: typeof body.name === 'string' ? body.name : '',
+      loginUrl: body.loginUrl,
+    };
+  }
+  throw new WelcomePrepareError('BAD_RESPONSE');
 };
 
 // ── T-221: password-reset mint (auth) ───────────────────────────────────────
@@ -586,11 +641,110 @@ function invoiceRenderData(view: InvoiceEmailView, userId: string): Record<strin
     : { ...common, invoiceNumber: view.number };
 }
 
+// ── T-646: payment-concern emails (billing) ──────────────────────────────────
+
+/** The concern templates. Both resolve everything, recipient included, through billing. */
+const CONCERN_TEMPLATES: ReadonlySet<EmailTemplate> = new Set<EmailTemplate>([
+  'billing.concernReceived',
+  'admin.paymentConcern',
+]);
+
+/**
+ * What billing's concern email-view returns on 200. Ids, the reference, the reason code, the
+ * customer's address (acknowledgement recipient), its masked form, links and the support
+ * address. Never the concern note (Arjun ruling 5). Never log any of it except the ids.
+ */
+export interface ConcernEmailView {
+  concernId: string;
+  userId: string;
+  paymentId: string;
+  razorpayPaymentId: string;
+  reference: string;
+  reason: string;
+  email: string;
+  /** Greeting only; '' when unknown. */
+  name: string;
+  maskedEmail: string;
+  paymentUrl: string;
+  adminUrl: string;
+  notifyTo: string;
+}
+
+export type ConcernViewResult =
+  | { status: 'ok'; view: ConcernEmailView }
+  | { status: 'erased' }
+  | { status: 'rejected'; httpStatus: number };
+
+export type FetchConcernViewFn = (concernId: string) => Promise<ConcernViewResult>;
+
+function parseConcernView(body: unknown): ConcernEmailView | null {
+  if (!body || typeof body !== 'object') return null;
+  const b = body as Record<string, unknown>;
+  const fields = [
+    'concernId',
+    'userId',
+    'paymentId',
+    'razorpayPaymentId',
+    'reference',
+    'reason',
+    'email',
+    'paymentUrl',
+    'adminUrl',
+    'notifyTo',
+  ] as const;
+  if (!fields.every((f) => nonEmpty(b[f]))) return null;
+  if (b.maskedEmail !== undefined && typeof b.maskedEmail !== 'string') return null;
+  if (b.name !== undefined && typeof b.name !== 'string') return null;
+  return {
+    concernId: b.concernId as string,
+    userId: b.userId as string,
+    paymentId: b.paymentId as string,
+    razorpayPaymentId: b.razorpayPaymentId as string,
+    reference: b.reference as string,
+    reason: b.reason as string,
+    email: b.email as string,
+    name: typeof b.name === 'string' ? b.name : '',
+    maskedEmail: typeof b.maskedEmail === 'string' ? b.maskedEmail : '',
+    paymentUrl: b.paymentUrl as string,
+    adminUrl: b.adminUrl as string,
+    notifyTo: b.notifyTo as string,
+  };
+}
+
+/** Same error handling as the invoice view: value-free BillingViewError on anything retryable. */
+export const fetchConcernViewViaBilling: FetchConcernViewFn = async (concernId) => {
+  if (!env.BILLING_SERVICE_URL) throw new BillingViewError('NO_BILLING_URL');
+  const base = env.BILLING_SERVICE_URL.replace(/\/+$/, '');
+  let res: Response;
+  try {
+    res = await fetch(
+      `${base}/internal/payment-concerns/${encodeURIComponent(concernId)}/email-view`,
+      {
+        method: 'GET',
+        headers: { [INTERNAL_HEADERS.SECRET]: env.INTERNAL_SECRET },
+        signal: AbortSignal.timeout(BILLING_VIEW_TIMEOUT_MS),
+      },
+    );
+  } catch (err) {
+    const name = (err as { name?: unknown } | null)?.name;
+    throw new BillingViewError(name === 'TimeoutError' ? 'TIMEOUT' : 'NETWORK');
+  }
+  if (res.status === 410) return { status: 'erased' };
+  if (res.status === 400 || res.status === 404)
+    return { status: 'rejected', httpStatus: res.status };
+  if (!res.ok) throw new BillingViewError(`HTTP_${res.status}`);
+  const view = parseConcernView(await res.json().catch(() => null));
+  if (!view) throw new BillingViewError('BAD_RESPONSE');
+  return { status: 'ok', view };
+};
+
 const UNFILLED_PLACEHOLDER_MESSAGE = 'email has unfilled footer placeholders; not sent';
 const NO_STREET_ADDRESS_MESSAGE =
   'password reset email needs the supplier street address; not sent';
 const NO_STREET_ADDRESS_SIGNUP_ATTEMPT_MESSAGE =
   'sign-up attempt email needs the supplier street address; not sent';
+const NO_STREET_ADDRESS_WELCOME_MESSAGE =
+  'welcome email needs the supplier street address; not sent';
 /** Errors raised by the placeholder guard: rethrown as-is, without the Sentry/log path. */
 const placeholderRefusals = new WeakSet<object>();
 
@@ -621,6 +775,8 @@ export function createProcessor(
   invoiceView: FetchInvoiceViewFn = fetchInvoiceViewViaBilling,
   passwordReset: MintPasswordResetFn = mintPasswordResetViaAuth,
   signupAttempt: PrepareSignupAttemptFn = prepareSignupAttemptViaAuth,
+  welcome: PrepareWelcomeFn = prepareWelcomeViaAuth,
+  concernView: FetchConcernViewFn = fetchConcernViewViaBilling,
 ): Processor<EmailJobData> {
   return async (job: Job<EmailJobData>) => {
     const { template, cc, bcc, replyTo, data } = job.data;
@@ -633,14 +789,25 @@ export function createProcessor(
     const isNotice = template === 'auth.unverifiedDeletionNotice';
     const isPasswordReset = template === 'auth.passwordReset';
     const isSignupAttempt = template === 'auth.signupAttempt';
+    const isWelcome = template === 'auth.welcome';
     // T-436: invoice and credit-note emails resolve the recipient through billing.
     const invoiceKind = INVOICE_TEMPLATE_KIND[template];
     const rawInvoiceId = data?.invoiceId;
     const invoiceId = invoiceKind && nonEmpty(rawInvoiceId) ? rawInvoiceId : undefined;
+    // T-646: both concern emails resolve the recipient and every field through billing.
+    const isConcern = CONCERN_TEMPLATES.has(template);
+    const rawConcernId = data?.concernId;
+    const concernId = isConcern && nonEmpty(rawConcernId) ? rawConcernId : undefined;
     // All of these resolve the recipient through auth or billing; the job's to/cc/bcc/replyTo
     // are never used.
     const userIdOnly =
-      isVerify || isNotice || isPasswordReset || isSignupAttempt || invoiceKind !== undefined;
+      isVerify ||
+      isNotice ||
+      isPasswordReset ||
+      isSignupAttempt ||
+      isWelcome ||
+      invoiceKind !== undefined ||
+      isConcern;
     // T-358: which verify-link mail this is, for the outcome report (set once known).
     let mail: VerifyMail | null = isVerify ? 'verify' : null;
     Sentry.addBreadcrumb({
@@ -718,6 +885,37 @@ export function createProcessor(
         }
         to = [prepared.email];
         renderData = { signInUrl: prepared.signInUrl, resetUrl: prepared.resetUrl, userId };
+        if (streetAddress) renderData = { ...renderData, streetAddress };
+      }
+      if (isWelcome) {
+        // T-587 (option A): the address and name come from auth at send time, never the job.
+        if (!userId) throw new UnrecoverableError('auth.welcome job without a userId');
+        // Checked before the fetch, so no PII is pulled for an email that cannot render.
+        if (!isTemplateRegistered(template)) {
+          throw new Error(`Template "${template}" is not registered`);
+        }
+        // AJ-587-M1 (review item 25): footer line 1 carries the supplier street address, as in
+        // the reset mail. Same guard: no live send without it, checked before the fetch.
+        const streetAddress = supplierStreetAddress();
+        if (isLiveSend() && !streetAddress) {
+          logger.error(
+            { userId: ids.userId, reason: 'supplier_street_address_unset' },
+            'Welcome email not sent: supplier street address not set',
+          );
+          const refusal = new UnrecoverableError(NO_STREET_ADDRESS_WELCOME_MESSAGE);
+          placeholderRefusals.add(refusal);
+          throw refusal;
+        }
+        const prepared = await welcome(userId);
+        if (!prepared) {
+          logger.info(
+            { jobId, template: ids.template, userId: ids.userId },
+            'Welcome email not sent: not eligible or no such user',
+          );
+          return { skipped: 'not_eligible' };
+        }
+        to = [prepared.email];
+        renderData = { name: prepared.name, loginUrl: prepared.loginUrl, userId };
         if (streetAddress) renderData = { ...renderData, streetAddress };
       }
       if (isPasswordReset) {
@@ -825,6 +1023,70 @@ export function createProcessor(
         }
         to = [view.customer.email];
         renderData = invoiceRenderData(view, userId);
+      }
+      if (isConcern) {
+        // T-646 (Arjun rulings 4-5): the job carries { userId, concernId } only. Recipient,
+        // reference and links come from billing at send time; the note never does.
+        if (!userId || !concernId || !OBJECT_ID.test(concernId)) {
+          logger.error(
+            { jobId, template: ids.template, userId: ids.userId },
+            'Concern email job without valid ids',
+          );
+          throw new UnrecoverableError('concern email job without a valid userId and concernId');
+        }
+        if (!isTemplateRegistered(template)) {
+          throw new Error(`Template "${template}" is not registered`);
+        }
+        const result = await concernView(concernId);
+        if (result.status === 'erased') {
+          logger.info(
+            { jobId, template: ids.template, userId: ids.userId, concernId, status: 410 },
+            'Concern email not sent: user erased or being erased',
+          );
+          return { skipped: 'erased' };
+        }
+        if (result.status === 'rejected') {
+          logger.warn(
+            {
+              jobId,
+              template: ids.template,
+              userId: ids.userId,
+              concernId,
+              status: result.httpStatus,
+            },
+            'Concern email not sent: billing has no such concern',
+          );
+          throw new UnrecoverableError(`concern email-view HTTP_${result.httpStatus}`);
+        }
+        const { view } = result;
+        if (view.userId !== userId || view.concernId !== concernId) {
+          logger.error(
+            { jobId, template: ids.template, userId: ids.userId, concernId },
+            'Concern email not sent: billing row does not match the job',
+          );
+          throw new UnrecoverableError('concern email-view does not match the job');
+        }
+        if (template === 'billing.concernReceived') {
+          to = [view.email];
+          renderData = {
+            name: view.name,
+            reference: view.reference,
+            paymentUrl: view.paymentUrl,
+            userId,
+          };
+        } else {
+          to = [view.notifyTo];
+          renderData = {
+            reference: view.reference,
+            concernId: view.concernId,
+            paymentId: view.paymentId,
+            razorpayPaymentId: view.razorpayPaymentId,
+            reason: view.reason,
+            maskedEmail: view.maskedEmail,
+            adminUrl: view.adminUrl,
+            userId,
+          };
+        }
       }
 
       const rendered = await renderTemplate(template, renderData);
@@ -953,6 +1215,8 @@ export interface StartWorkersOptions {
   passwordReset?: MintPasswordResetFn;
   /** T-522 signup-attempt prepare; defaults to the call to auth's internal route. */
   signupAttempt?: PrepareSignupAttemptFn;
+  /** T-587 welcome prepare; defaults to the call to auth's internal route. */
+  welcome?: PrepareWelcomeFn;
 }
 
 export function startWorkers(options: StartWorkersOptions = {}): Worker[] {
@@ -974,6 +1238,7 @@ export function startWorkers(options: StartWorkersOptions = {}): Worker[] {
     options.invoiceView,
     options.passwordReset,
     options.signupAttempt,
+    options.welcome,
   );
   const started: Worker[] = [];
   for (const queueName of WORKER_QUEUE_NAMES) {

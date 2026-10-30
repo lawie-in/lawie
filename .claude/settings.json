@@ -28,6 +28,9 @@
       "Bash(aws ec2 wait *)",
       "Bash(aws ec2 describe-instances *)",
       "Bash(curl -s -H \"Authorization: Bearer $CLOUDFLARE_API_TOKEN\" https://api.cloudflare.com/client/v4/*)",
+      "Bash(aws ssm update-document --name lawie-prod-ops *)",
+      "Bash(aws ssm update-document-default-version --name lawie-prod-ops *)",
+      "Bash(aws ssm send-command --instance-ids i-0e11d3dd5716776ff --document-name lawie-prod-ops *)",
       "ArtifactData",
       "ArtifactComments"
     ]

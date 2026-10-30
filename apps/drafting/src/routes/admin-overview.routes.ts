@@ -3,7 +3,8 @@
  *
  *   GET /admin/overview/kpis      — 4 KPI tiles + monthly revenue
  *   GET /admin/overview/activity  — recent activity feed (signups, drafts, reviews, redemptions)
- *   GET /admin/overview/ai-runtime — current ai.drafting_model + ai.preflight_model values
+ *   GET /admin/overview/ai-runtime — the drafter and fact_checker models (drafting_model,
+ *                                    preflight_model) plus every role's model (T-684)
  *
  * All Admin-only (role === 'Admin'). KPIs are stitched from existing
  * collections — no new persistence needed.
@@ -16,11 +17,22 @@ import { CreditLedger } from '../models/CreditLedger.model';
 import { LawieDocument } from '../models/Document.model';
 import { ReviewToken } from '../models/ReviewToken.model';
 import { User } from '../models/User.model';
-import { getAppSetting, AppSettingMissingError } from '../services/app-settings.service';
+import { AppSettingMissingError, MODEL_ROLES, ModelRole } from '../services/app-settings.service';
+import { ModelSource, ResolvedModel, resolveModelWithSource } from '../services/llm-usage';
 import { NOT_FIXTURE } from '../services/run-origin';
 
 /** T-563 — test accounts (develop-only bypass) are left out of every user count and feed. */
 const NOT_TEST_ACCOUNT = { isTestAccount: { $ne: true } };
+
+/** Raw collection the auth service's grantReferralInk writes its 'referral_bonus' row to. */
+const INK_LEDGER_COLLECTION = 'inkledger';
+
+interface ReferralInkRow {
+  userId: mongoose.Types.ObjectId;
+  reference?: string;
+  metadata?: { referralCode?: string; bonusInk?: number };
+  createdAt: Date;
+}
 
 const router = Router();
 
@@ -175,45 +187,61 @@ router.get(
     const since = new Date(Date.now() - 7 * 24 * 3600 * 1000);
 
     // Pull recent signups (User), drafts (Document), reviews (ReviewToken — submitted),
-    // redemptions (CreditLedger source=signup_bonus). Cap to 30 most recent overall.
-    const [recentSignups, recentDrafts, recentReviews, recentRedemptions, recentTopups] =
-      await Promise.all([
-        User.find({ createdAt: { $gte: since }, ...NOT_TEST_ACCOUNT })
-          .select('name email createdAt referredVia')
-          .sort({ createdAt: -1 })
-          .limit(15)
-          .lean(),
-        LawieDocument.find({ createdAt: { $gte: since }, isDeleted: { $ne: true }, ...NOT_FIXTURE })
-          .select('title userId createdAt docType')
-          .sort({ createdAt: -1 })
-          .limit(15)
-          .lean(),
-        ReviewToken.find({ isUsed: true, updatedAt: { $gte: since } })
-          .select('assignedTo documentId updatedAt reviewerErased')
-          .sort({ updatedAt: -1 })
-          .limit(15)
-          .lean(),
-        CreditLedger.find({
-          createdAt: { $gte: since },
-          source: { $in: ['signup_bonus', 'topup_purchase'] },
-        })
-          .sort({ createdAt: -1 })
-          .limit(15)
-          .lean(),
-        CreditLedger.find({
-          createdAt: { $gte: since },
-          source: 'topup_purchase',
-        })
-          .sort({ createdAt: -1 })
-          .limit(10)
-          .lean(),
-      ]);
+    // redemptions and top-ups. Cap to 30 most recent overall.
+    // T-652: a referral redemption is read from the inkledger 'referral_bonus' row that auth's
+    // grantReferralInk writes (once per user, fenced by referralInkGrantedAt). Signup stopped
+    // writing the creditledger 'signup_bonus' row in T-652; old rows are still read for history.
+    const db = mongoose.connection.db;
+    const [
+      recentSignups,
+      recentDrafts,
+      recentReviews,
+      legacyRedemptions,
+      referralInkRows,
+      recentTopups,
+    ] = await Promise.all([
+      User.find({ createdAt: { $gte: since }, ...NOT_TEST_ACCOUNT })
+        .select('name email createdAt referredVia')
+        .sort({ createdAt: -1 })
+        .limit(15)
+        .lean(),
+      LawieDocument.find({ createdAt: { $gte: since }, isDeleted: { $ne: true }, ...NOT_FIXTURE })
+        .select('title userId createdAt docType')
+        .sort({ createdAt: -1 })
+        .limit(15)
+        .lean(),
+      ReviewToken.find({ isUsed: true, updatedAt: { $gte: since } })
+        .select('assignedTo documentId updatedAt reviewerErased')
+        .sort({ updatedAt: -1 })
+        .limit(15)
+        .lean(),
+      CreditLedger.find({ createdAt: { $gte: since }, source: 'signup_bonus' })
+        .sort({ createdAt: -1 })
+        .limit(15)
+        .lean(),
+      db
+        ? db
+            .collection<ReferralInkRow>(INK_LEDGER_COLLECTION)
+            .find({ createdAt: { $gte: since }, reason: 'referral_bonus' })
+            .sort({ createdAt: -1 })
+            .limit(15)
+            .toArray()
+        : Promise.resolve([] as ReferralInkRow[]),
+      CreditLedger.find({
+        createdAt: { $gte: since },
+        source: 'topup_purchase',
+      })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .lean(),
+    ]);
 
     // Decorate userIds with names for the feed
     const allUserIds = new Set<string>([
       ...recentDrafts.map((d) => String(d.userId)),
       ...recentReviews.map((r) => String(r.documentId)),
-      ...recentRedemptions.map((r) => String(r.userId)),
+      ...legacyRedemptions.map((r) => String(r.userId)),
+      ...referralInkRows.map((r) => String(r.userId)),
       ...recentTopups.map((t) => String(t.userId)),
     ]);
     const users = await User.find({ _id: { $in: [...allUserIds] } })
@@ -255,8 +283,25 @@ router.get(
         at: r.updatedAt,
       });
     }
-    for (const r of recentRedemptions) {
-      if (r.source !== 'signup_bonus') continue;
+    // T-652: one redemption per user. A user with an inkledger referral row is shown from it,
+    // so a pre-T-652 signup_bonus row for the same user is not listed a second time.
+    const referralInkUsers = new Set(referralInkRows.map((r) => String(r.userId)));
+    for (const r of referralInkRows) {
+      const owner =
+        (userMap.get(String(r.userId)) as { name?: string } | undefined)?.name ?? '(advocate)';
+      const code = r.metadata?.referralCode ?? r.reference;
+      const bonusInk = r.metadata?.bonusInk;
+      items.push({
+        type: 'redemption',
+        label: `${owner} redeemed referral`,
+        detail: [bonusInk !== undefined ? `${bonusInk} Ink` : '', code ?? '']
+          .filter(Boolean)
+          .join(' · '),
+        at: r.createdAt,
+      });
+    }
+    for (const r of legacyRedemptions) {
+      if (referralInkUsers.has(String(r.userId))) continue;
       const owner =
         (userMap.get(String(r.userId)) as { name?: string } | undefined)?.name ?? '(advocate)';
       items.push({
@@ -311,21 +356,28 @@ router.get(
   authenticate,
   requireAdmin,
   async (_req: Request, res: Response): Promise<void> => {
-    const get = async (key: string) => {
+    // T-684: each role resolved as the call sites do (role key, then legacy
+    // key); a role with no key set is null, as a missing setting was before.
+    const get = async (role: ModelRole): Promise<ResolvedModel | null> => {
       try {
-        return await getAppSetting(key);
+        return await resolveModelWithSource(role);
       } catch (err) {
         if (err instanceof AppSettingMissingError) return null;
         throw err;
       }
     };
-    const [draftingModel, preflightModel] = await Promise.all([
-      get('ai.drafting_model'),
-      get('ai.preflight_model'),
-    ]);
+    const resolved = await Promise.all(MODEL_ROLES.map((role) => get(role)));
+    const models = {} as Record<ModelRole, string | null>;
+    const modelSources = {} as Record<ModelRole, ModelSource | null>;
+    MODEL_ROLES.forEach((role, i) => {
+      models[role] = resolved[i]?.model ?? null;
+      modelSources[role] = resolved[i]?.source ?? null;
+    });
     res.json({
-      drafting_model: draftingModel,
-      preflight_model: preflightModel,
+      drafting_model: models.drafter,
+      preflight_model: models.fact_checker,
+      models,
+      model_sources: modelSources,
     });
   },
 );

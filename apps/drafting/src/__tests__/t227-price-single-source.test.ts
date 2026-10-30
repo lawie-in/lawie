@@ -23,6 +23,7 @@ import { AppSetting } from '../models/AppSetting.model';
 import { Generation } from '../models/Generation.model';
 import { Template } from '../models/Template.model';
 import { User } from '../models/User.model';
+import { seedCourts } from './seedCourts';
 import { createVerifiedUser } from './verifiedUser';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import {
@@ -148,6 +149,9 @@ beforeEach(async () => {
     value: JSON.stringify({ input_usd_per_mtok: 3, output_usd_per_mtok: 15 }),
   });
 });
+
+// T-686: an id-shaped court with no active row stops the run, so the court is seeded.
+seedCourts('district_sessions_patna');
 
 describe('AC1 - Vikram price list', () => {
   it('has 92 rule files priced exactly once: 31 at 1 Ink, 61 at 2 Ink', () => {

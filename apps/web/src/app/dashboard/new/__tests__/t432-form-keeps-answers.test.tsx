@@ -254,7 +254,7 @@ describe('T-432 AC1/AC2: every return path keeps answers and step', () => {
   it('402 paywall: the form comes back under the modal with its answers', async () => {
     await open('Alpha notice');
     await fillThreeSteps();
-    mockPrivacyFetch.mockResolvedValue(reply(402, { cost: 3, balance: { total: 1 } }));
+    mockPrivacyFetch.mockResolvedValue(reply(402, { cost: 3, balance: { total: 1, totalInk: 1 } }));
     await click('Generate document');
     expect(container.querySelector('[data-testid="paywall"]')).not.toBeNull();
     await expectAnswersKept();
@@ -264,7 +264,7 @@ describe('T-432 AC1/AC2: every return path keeps answers and step', () => {
     await open('Alpha notice');
     await fillThreeSteps();
     mockVerifyInstead = true;
-    mockPrivacyFetch.mockResolvedValue(reply(402, { cost: 3, balance: { total: 1 } }));
+    mockPrivacyFetch.mockResolvedValue(reply(402, { cost: 3, balance: { total: 1, totalInk: 1 } }));
     await click('Generate document');
     expect(container.querySelector('[data-testid="paywall"]')).toBeNull();
     expect(onForm()).toBe(true);
@@ -340,7 +340,7 @@ describe('T-432 AC1/AC2: every return path keeps answers and step', () => {
     await flush();
     await click('Next');
     await type('the facts');
-    mockPrivacyFetch.mockResolvedValue(reply(402, { cost: 3, balance: { total: 1 } }));
+    mockPrivacyFetch.mockResolvedValue(reply(402, { cost: 3, balance: { total: 1, totalInk: 1 } }));
     await click('Generate document');
     expect(container.querySelector('[data-testid="paywall"]')).not.toBeNull();
     expect(field().value).toBe('the facts');
@@ -435,7 +435,7 @@ describe('T-432 AC3: nothing typed goes to browser storage', () => {
     await click('Generate document');
     await click('Edit the form');
     await click('Back');
-    mockPrivacyFetch.mockResolvedValue(reply(402, { cost: 3, balance: { total: 1 } }));
+    mockPrivacyFetch.mockResolvedValue(reply(402, { cost: 3, balance: { total: 1, totalInk: 1 } }));
     verdict = { verdict: 'pass' };
     await click('Next');
     await click('Generate document');

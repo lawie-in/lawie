@@ -198,7 +198,7 @@ test.describe('auth gate', () => {
     await seedVisitor(context, 'night');
     // No API mocks on purpose: a signed-out visitor must not trigger any gateway call.
     await page.goto('/dashboard');
-    await expect(page).toHaveURL(/\/login$/);
+    await expect(page).toHaveURL(/\/login\?next=%2Fdashboard$/);
     await expect(page.getByRole('tab', { name: 'Sign in' })).toBeVisible();
   });
 });

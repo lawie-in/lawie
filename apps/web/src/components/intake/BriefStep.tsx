@@ -14,13 +14,14 @@
  * Without a ledger the screen is exactly as before.
  */
 import { ChevronDown, Loader2 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   Brief,
   BriefCourt,
   BriefItem,
   dateInWords,
+  derivedDateCaption,
   describeValue,
   EditOutcome,
   fieldValueOf,
@@ -29,11 +30,11 @@ import {
   Ledger,
   LedgerFact,
   ledgerEntryOf,
-  ledgerGivenKeys,
   PART_ORDER,
   PART_TITLES,
   renderedLedgerFacts,
   revealLabel,
+  shownSoftFindings,
   Value,
 } from './briefTypes';
 import CourtPicker from './CourtPicker';
@@ -55,7 +56,8 @@ import {
 } from './ui';
 import ValueInput from './ValueInput';
 
-import { ErrorState, Skeleton } from '@/components/ui';
+import { ErrorState, Notice, Skeleton } from '@/components/ui';
+import { useSignupConsent } from '@/lib/signupConsent';
 
 /**
  * T-136. Ajay's line (CLO, 7 Oct 2026, part 2, condition 2), word for word. The
@@ -155,6 +157,8 @@ function fieldId(key: string): string {
 
 type RowStatus =
   | { kind: 'saving'; typed: Value }
+  // T-612: the service took no ledger edit for this row; what was picked stays on screen.
+  | { kind: 'kept'; typed: Value }
   | { kind: 'saved_as'; display: string }
   | { kind: 'unreadable'; typed: Value; detail: string }
   | { kind: 'failed'; typed: Value };
@@ -215,19 +219,45 @@ function Item({
   const notKnownDate = isEmptyValue(item.value) && !entry.fact && isNotKnownDate(item, askedAnswer);
 
   // T-147b: the row renders from the ledger. With no fact and nothing outstanding,
-  // the brief's own value shows as before.
+  // the brief's own value shows as before. T-612: several choices or a list is one
+  // fact per entry under the same key, so every one of them is the row's value.
+  const multi = item.kind === 'choices' || item.kind === 'list';
+  const multiFacts = multi && ledger ? ledger.facts.filter((f) => f.key === item.key) : [];
+  // T-612: a pick kept after a null outcome gives way once the ledger's entries
+  // for this key change (a re-read, another document).
+  const multiDisplaysKey = multi ? JSON.stringify(multiFacts.map((f) => f.display)) : '[]';
+  const multiLedgerKey = multi
+    ? JSON.stringify([multiDisplaysKey, entry.unresolved?.raw_span ?? null])
+    : '';
+  // T-612: the same array while the entries are the same, so a re-render elsewhere
+  // does not reset a list being typed in (ValueInput resets on a new value).
+  const multiShown = useMemo(() => JSON.parse(multiDisplaysKey) as string[], [multiDisplaysKey]);
+  useEffect(() => {
+    setStatus((s) => (s?.kind === 'kept' ? null : s));
+  }, [multiLedgerKey]);
+  // T-612: only the newest pick on this row may set its status; an older answer
+  // arriving later must not undo it.
+  const latestCommit = useRef(0);
+  // T-612: for several choices or a list, what was just picked shows while it
+  // saves too, so a chip stays ticked and the next tick adds to it.
   const shown: Value | null =
-    status && 'typed' in status && status.kind !== 'saving'
+    status && 'typed' in status && (multi || status.kind !== 'saving')
       ? status.typed
       : notKnown !== undefined
         ? notKnown
         : entry.fact
-          ? fieldValueOf(item, entry.fact)
+          ? multi
+            ? multiShown
+            : fieldValueOf(item, entry.fact)
           : entry.unresolved
             ? null
             : item.value;
   const empty = isEmptyValue(shown);
   const heading = item.kind === 'date' && item.meaning ? item.meaning : item.label;
+  // T-638 (Ajay R1, B3): a custody date derived from the date of arrest shows
+  // "<date> (date of arrest)" beside it, while the row shows that derived value.
+  const derivedCaption =
+    !entry.fact && !status && shown === item.value ? derivedDateCaption(item) : null;
   const toBeAsked =
     onLedger &&
     entry.unresolved !== undefined &&
@@ -258,10 +288,14 @@ function Item({
       void onCommit(value);
       return;
     }
+    const mine = ++latestCommit.current;
     setStatus({ kind: 'saving', typed: value });
     const out = await onCommit(value);
+    if (mine !== latestCommit.current) return;
     if (!out) {
-      setStatus(null);
+      // T-612: no ledger result for this row. For several choices or a list,
+      // falling back to the ledger reset the chips, so the pick stays on screen.
+      setStatus(multi ? { kind: 'kept', typed: value } : null);
       return;
     }
     if (out.status === 'failed') setStatus({ kind: 'failed', typed: value });
@@ -316,7 +350,10 @@ function Item({
     <div
       className={WIDE.has(item.kind) ? 'sm:col-span-2' : ''}
       {...(onLedger && entry.fact
-        ? { 'data-ledger-key': entry.fact.key, 'data-ledger-display': entry.fact.display }
+        ? {
+            'data-ledger-key': entry.fact.key,
+            'data-ledger-display': multi ? multiShown.join(', ') : entry.fact.display,
+          }
         : {})}
       {...(toBeAsked ? { 'data-ledger-unresolved': item.key } : {})}
     >
@@ -370,6 +407,7 @@ function Item({
             [
               required ? `${id}-required` : '',
               item.note ? `${id}-note` : '',
+              derivedCaption ? `${id}-derived` : '',
               statusLine ? `${id}-status` : '',
               showBlank && !needed ? `${id}-blank` : '',
             ]
@@ -380,6 +418,11 @@ function Item({
         />
       </div>
       {revealLines && revealOpen && <Reveal id={`${id}-span`} lines={revealLines} />}
+      {derivedCaption && (
+        <p id={`${id}-derived`} className={`${small} mt-1`}>
+          {derivedCaption}
+        </p>
+      )}
       {item.note && (
         <p id={`${id}-note`} className={`${small} mt-1`}>
           {item.note}
@@ -588,24 +631,67 @@ export default function BriefStep({
   const dateCheck = brief.date_check;
   const datesHeld = dateCheck !== undefined && datesAcceptedFor !== dateCheck.text;
   // T-498: a party name the ledger holds shows on its row, so it does not block
-  // Confirm. The service already leaves it out when it had the ledger; this
-  // keeps the screen in step when it did not. With no ledger nothing changes.
-  const ledgerGiven = ledgerGivenKeys(ledger);
+  // Confirm. T-655: the service's given set (`ledger_given_keys`); the screen
+  // does not judge the ledger. Absent: nothing is ledger-given (fails closed).
+  const ledgerGiven = new Set(brief.ledger_given_keys ?? []);
+  // T-644 (AJ-644-M1, AJ-644-M2): on O.39 the service names the missing parties
+  // (a §(j)3 non-answer counts), so the screen does not judge emptiness. An
+  // older brief without the list has none.
+  const o39 = brief.kind.id === 'temporary_injunction_o39';
+  const missingPartyKeys = brief.confirm_missing_party_keys ?? [];
   const partyMissing = (i: BriefItem): boolean =>
-    i.party_name && i.required && isEmptyValue(i.value) && !ledgerGiven.has(i.key);
+    i.party_name &&
+    (o39 || brief.confirm_missing_party_keys !== undefined
+      ? missingPartyKeys.includes(i.key)
+      : i.required && isEmptyValue(i.value)) &&
+    !ledgerGiven.has(i.key);
   const partiesNeeded =
     brief.confirm_blockers.includes('parties') && brief.items.some(partyMissing);
   const courtNeeded = brief.confirm_blockers.includes('court');
+  // T-629: a required field (main_suit_relief, restraint_sought) blocks until
+  // the service says otherwise. The ledger never lifts it (fail closed).
+  const requiredNeeded = brief.confirm_blockers.includes('required_fields');
   // Only the parties the ledger holds are lifted; any other "no" stays.
   const partiesLifted = brief.confirm_blockers.includes('parties') && !partiesNeeded;
-  const briefCanConfirm = brief.can_confirm || (partiesLifted && !courtNeeded);
-  // The service's line, unless only the court is left of what it named (Ajay's
-  // signed wording, T-127 section 7.2, as in apps/drafting intake-brief.ts).
+  const briefCanConfirm = brief.can_confirm || (partiesLifted && !courtNeeded && !requiredNeeded);
+  // The service's lines, unless the parties were lifted: then the court's line
+  // (Ajay's signed wording, T-127 section 7.2, as in apps/drafting
+  // intake-brief.ts) if the court is still needed, and the required fields'
+  // signed lines after it (T-629, T-613 §(j)2). The service's court/parties
+  // text is one line whenever either blocks, except on O.39 with the party
+  // list (T-644): the court line, then one line per listed party, in order.
+  const serviceLines = (brief.confirm_message ?? '').split('\n').filter((l) => l !== '');
+  const courtLines = courtNeeded ? ['Choose the court to continue.'] : [];
+  const o39PartyLines = o39 && missingPartyKeys.length > 0;
+  const leadCount = o39PartyLines
+    ? courtLines.length + missingPartyKeys.length
+    : courtNeeded || brief.confirm_blockers.includes('parties')
+      ? 1
+      : 0;
+  const fieldLines = serviceLines.slice(leadCount);
+  const liftedLines = [...courtLines, ...fieldLines];
+  // T-644: on O.39, the service's lines less those of the parties the ledger holds.
+  const o39Lines = [
+    ...courtLines,
+    ...(o39PartyLines
+      ? missingPartyKeys.flatMap((k, at) => {
+          const line = serviceLines[courtLines.length + at];
+          return ledgerGiven.has(k) || line === undefined ? [] : [line];
+        })
+      : []),
+    ...fieldLines,
+  ];
   const confirmLine = briefCanConfirm
     ? null
-    : partiesLifted
-      ? 'Choose the court to continue.'
-      : brief.confirm_message;
+    : o39
+      ? o39Lines.length > 0
+        ? o39Lines.join('\n')
+        : null
+      : partiesLifted
+        ? liftedLines.length > 0
+          ? liftedLines.join('\n')
+          : null
+        : brief.confirm_message;
   const canConfirm = briefCanConfirm && !datesHeld;
   const dateCheckContinue = useRef<HTMLButtonElement>(null);
   // The service may tidy the name. What it sends back is what is shown.
@@ -690,7 +776,13 @@ export default function BriefStep({
       return;
     }
     const party = brief.items.find(partyMissing);
-    if (party) focusField(party.key);
+    if (party) {
+      focusField(party.key);
+      return;
+    }
+    // T-629: then the first required field, in the signed order (§(j)2).
+    const field = requiredNeeded ? brief.confirm_blocking_keys?.[0] : undefined;
+    if (field) focusField(field);
   };
 
   /** What a press of Confirm does, with the brief as it is now. */
@@ -709,6 +801,8 @@ export default function BriefStep({
   // update ends. A failed update (its line shows in `message`) drops the press.
   const [confirmHeld, setConfirmHeld] = useState(false);
   const pending = busy || updating || confirming;
+  // T-642 (Rajesh 3, option a): while the sign-up consent panel shows, its button is the one primary.
+  const { needed: signupConsentNeeded } = useSignupConsent();
   useEffect(() => {
     if (!confirmHeld || updating) return;
     setConfirmHeld(false);
@@ -1024,7 +1118,7 @@ export default function BriefStep({
         <button
           type="button"
           onClick={focusFirstBlocker}
-          className="bg-brand-error-light text-brand-error focus-visible:ring-brand-teal mt-4 block w-full rounded-lg p-3 text-left text-sm font-semibold focus:outline-none focus-visible:ring-2"
+          className="bg-brand-error-light text-brand-error focus-visible:ring-brand-teal mt-4 block w-full whitespace-pre-line rounded-lg p-3 text-left text-sm font-semibold focus:outline-none focus-visible:ring-2"
         >
           {confirmLine}
         </button>
@@ -1046,6 +1140,12 @@ export default function BriefStep({
           {DESCRIPTION_IS_USED}
         </p>
       )}
+
+      {/* T-690b (Rajesh): the brief's soft findings, directly above Confirm and the Ink cost
+          line. They never change either. Shown from the brief as the last update sent it. */}
+      {shownSoftFindings(brief.soft_findings).map((f) => (
+        <Notice key={f.rule_id} variant="warn" text={f.text} className="mt-4" />
+      ))}
 
       <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-x-5">
@@ -1071,7 +1171,16 @@ export default function BriefStep({
             aria-describedby={confirmDescribedByIds}
             // T-481: not while an update runs (see `onConfirmClick`).
             disabled={busy || confirming}
-            className={`${primaryButton} ${confirmOff ? 'opacity-40' : ''}`}
+            // T-642: secondary while the consent panel shows, sized as primary so nothing shifts
+            // (48px min height, text-base, and 23px side padding + the 1px border = primary's 24px).
+            className={`${
+              signupConsentNeeded
+                ? secondaryButton
+                    .replace('min-h-[44px]', 'min-h-[48px]')
+                    .replace('px-4', 'px-[23px]')
+                    .replace('text-sm', 'text-base')
+                : primaryButton
+            } ${confirmOff ? 'opacity-40' : ''}`}
           >
             {pending && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
             Confirm brief and continue

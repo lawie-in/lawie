@@ -56,3 +56,7 @@ AC7 rollback: if full builds do not fit the runner, two small tagged stand-in im
 3. **Compose drift check:** yes — the SSM line carries the sha256 of `docker-compose.prod.yml` and `deploy.sh` as built from the released sha; the box compares and fails fast when stale. Check only, no refresh; a refresh is a console step by the founder, with the new hashes printed in the run log.
 4. **Default branch:** confirmed `main` today; the founder switches it to `develop` before T-533 merges (on his checklist). The release job's refusal when it is not `develop` stays.
 AC7: rollback-drill job on a hosted runner with busybox stand-ins and a local `registry:2.8.3` — fine; trigger it after tests and review and attach the run link to the report.
+
+
+## Note (Arjun, 26 Oct 2026)
+secret-shape-scan.yml's release/** pattern is unchanged; T-533 owns its own workflow set when main's stripped tree lands. Once main has no .github, PRs into main cannot run "Scripts tests", so do not make it a required check on main (Mahak, T-593).

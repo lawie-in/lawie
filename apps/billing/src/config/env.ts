@@ -114,6 +114,13 @@ const envObject = z.object({
   // only when the key is missing (the database value always wins; a DB error is
   // always off). Default off; only the exact string "true" turns it on.
   FEATURE_DEFAULT_COUPON_FREE_GRANT: z.string().optional(),
+
+  // T-646 (Arjun ruling 4; AJ-646-M6): where the "new payment concern" notice goes.
+  // One address (contact@lawie.in) unless the founder sets another. Blank counts as unset.
+  SUPPORT_NOTIFY_EMAIL: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
+    z.string().email('SUPPORT_NOTIFY_EMAIL must be an email address').default('contact@lawie.in'),
+  ),
 });
 
 // T-527 (AC5): a refused key mode fails the parse, so it goes through loadEnv's

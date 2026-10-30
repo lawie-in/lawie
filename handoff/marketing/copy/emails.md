@@ -264,7 +264,7 @@ Plain-text version: same text, with `Go to sign in: {loginUrl}` in place of the 
 
 ## 3. Verification email (`auth.verifyEmail`)
 
-New. Sent on email and password sign-up only (Google counts as verified; no email). T-223 option B: the first draft works without verification; the second draft, the daily login bonus and checkout need it. T-223 AC text is not written yet, so every number below is a placeholder from T-223's "link (signed, single-use, 24 h expiry)" line. Resend is rate-limited; the web app's "verify your email" prompt and resend button have their own copy (not here).
+New. Sent on email and password sign-up only (Google counts as verified; no email). T-223 option B: the first draft works without verification; the second draft and checkout need it (~~the daily login bonus~~ withdrawn, AJ-646-M9b). T-223 AC text is not written yet, so every number below is a placeholder from T-223's "link (signed, single-use, 24 h expiry)" line. Resend is rate-limited; the web app's "verify your email" prompt and resend button have their own copy (not here).
 
 Design choice: the email states what verification is for in one line, and does not say "to start using Lawie" (the first draft already works, so that would be untrue).
 
@@ -286,7 +286,7 @@ Body:
 ```
 Hello {name},
 
-Please verify your email address for your Lawie account. You need a verified email to make a second draft, get the daily login bonus, or buy Ink.
+Please verify your email address for your Lawie account. You need a verified email to make a second draft or buy Ink.
 
 [Verify email]   -> {verifyUrl}
 
@@ -304,7 +304,7 @@ Claims, all **[for Ajay]**:
 
 | Line | Basis / question |
 | --- | --- |
-| "You need a verified email to make a second draft, get the daily login bonus, or buy Ink." | T-223 option B as decided by the founder, 11 Oct. Must match the build exactly. If the daily bonus is not live at v1, delete that clause. Must also match Ajay's change 5 in the welcome email. |
+| "You need a verified email to make a second draft or buy Ink." | T-223 option B as decided by the founder, 11 Oct. Must match the build exactly. ~~"get the daily login bonus"~~ withdrawn, AJ-646-M9b: never a real offer; silent accrual stopped (T-652). Must also match Ajay's change 5 in the welcome email. |
 | "works once and expires in 24 hours" | T-223 build line (signed, single-use, 24 h). Confirm after T-223 AC is written. |
 | "If it has expired, sign in and ask for a new one." | Needs the resend button to exist in the web app (T-223). |
 | "Didn't create a Lawie account? Ignore this email ... nothing is verified" | Ajay's change 7 reasoning (a password account can be made with someone else's address); true as long as an unused link verifies nothing. |
@@ -316,7 +316,7 @@ Plain-text version:
 ```
 Hello {name},
 
-Please verify your email address for your Lawie account. You need a verified email to make a second draft, get the daily login bonus, or buy Ink.
+Please verify your email address for your Lawie account. You need a verified email to make a second draft or buy Ink.
 
 Verify email: {verifyUrl}
 
@@ -343,7 +343,7 @@ Not requested; I did not write one. Add it if Meera wants Hindi on all three, af
 | 1 | Confirm the swap of T-222's "Each draft uses 1 or 2 Ink" for T-238's "Most documents use 2 Ink; short documents ... use 1" | Ajay |
 | 2 | Confirm "Criminal drafts use BNS, BNSS and BSA section numbers" replaces the T-222 change 3 wording | Ajay |
 | 3 | Sign off Hindi version (translation of signed lines) | Ajay |
-| 4 | Verification email: confirm 24 h, single-use, "second draft / daily bonus / buy Ink" against the T-223 AC when written | Ajay, Priya |
+| 4 | Verification email: confirm 24 h, single-use, "second draft / buy Ink" (~~daily bonus~~ withdrawn, AJ-646-M9b) against the T-223 AC when written | Ajay, Priya |
 | 5 | Footer `[registered address]` and `[PIN]` | founder |
 | 6 | Ships after T-220 (sending) and T-227 (prices), and with T-223 for the verify line | Priya |
 | 7 | Meera's sign-off before anything is published | Meera |

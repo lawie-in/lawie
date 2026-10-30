@@ -441,8 +441,9 @@ export const AUTH_COPY = {
   switchToSignin: 'Sign in',
   switchToSignup: 'Create an account',
   continue: 'Continue',
-  // EXISTING (T-234, Ajay 11 Oct 2026): the "By continuing" line, kept on the Sign in tab only.
-  // A Google sign-in from that tab can still create an account, and it gets no checkbox.
+  // EXISTING (T-234, Ajay 11 Oct 2026): the "By continuing" line, shown beside the Google button
+  // on both tabs (AJ-517-M18(a), AJ-642-M1(a)). A Google sign-in can create an account without
+  // the checkbox; it gets the M16 box at its next sign-in (SIGNUP_CONSENT_COPY).
   byContinuing: {
     before: "By continuing, you agree to Lawie's ",
     terms: 'Terms of Service',
@@ -496,6 +497,22 @@ export const CONSENT_COPY = {
   after: ` (version ${CURRENT_PRIVACY_VERSION}).`,
   // AJ-517-M3, signed.
   required: 'Please accept the Privacy Policy and Terms to continue.',
+};
+
+/**
+ * T-642 — the next-sign-in consent step for acceptedVia 'google' accounts (AJ-517-M18(c)),
+ * wrapper copy signed in AJ-642-M2. The box and its error reuse CONSENT_COPY (AJ-517-M16, M3).
+ * Intro: introBefore + terms (link to /terms) + introMiddle + privacy (link to /privacy) +
+ * introAfter. The button stays disabled until the box is ticked.
+ */
+export const SIGNUP_CONSENT_COPY = {
+  heading: 'Before you continue',
+  introBefore: 'You signed up with Google. Please read and accept our ',
+  terms: 'Terms',
+  introMiddle: ' and ',
+  privacy: 'Privacy Policy',
+  introAfter: ' to keep using Lawie.',
+  accept: 'Accept and continue',
 };
 
 // ── T-522: verify bar, draft refusal, post-verify landing, referral notice ─────────────────────

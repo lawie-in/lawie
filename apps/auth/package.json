@@ -7,13 +7,15 @@
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "jest --coverage",
-    "test:watch": "jest --watch",
+    "test": "jest --selectProjects full --coverage",
+    "test:sanity": "jest --selectProjects sanity --coverage=false",
+    "test:watch": "jest --selectProjects full --watch",
     "lint": "eslint 'src/**/*.ts' --fix",
     "erase-user": "ts-node --transpile-only src/scripts/erase-user.ts",
     "test-accounts:list": "ts-node --transpile-only src/scripts/test-accounts.ts list",
     "test-accounts:delete": "ts-node --transpile-only src/scripts/test-accounts.ts delete",
-    "verify:resend-all": "ts-node --transpile-only scripts/verify-resend-all.ts"
+    "verify:resend-all": "ts-node --transpile-only scripts/verify-resend-all.ts",
+    "backfill:free-seed": "ts-node --transpile-only scripts/backfill-free-seed.ts"
   },
   "dependencies": {
     "@lawie/email-client": "1.0.0",

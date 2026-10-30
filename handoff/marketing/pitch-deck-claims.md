@@ -1,0 +1,29 @@
+# Pitch deck for advocates: claims for sign-off (Meera, 27 Oct 2026)
+
+Deck (private link, draft): https://claude.ai/artifact/2KytBv2PpXgBWoHu4KRztu . 12 slides. Not for any advocate until: Ajay signs every line below, T-403 is out, and Anushka has passed production (the founder's gate). Rules applied: only what prod does today; no outcome claims; no time-saved numbers; no "verified", "fact-checked" or "guaranteed"; no "secure" or "encrypted"; no CRM; no Pro; no discounts. The deck markets a tool to advocates. It never asks advocates to promote Lawie to clients and never mentions stipends or commissions (Ajay: BCI advertising and solicitation rules).
+
+| # | Slide | Claim, as written | Source / status |
+| --- | --- | --- | --- |
+| 1 | Cover | "You describe the matter. Lawie writes the first draft. You review and edit every line. The advocate stays responsible." | New wording. Ajay |
+| 2 | 2 | "Drafting starts with an old file and a lot of retyping." (three steps: find old file, change every detail, read it all again) | Describes the problem, not Lawie. Ajay |
+| 3 | 3 | "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing." / "Every draft is yours to read, change or discard." | Ajay's exact disclaimer; trust line from T-511 |
+| 4 | 4 | Describe / Draft / Review steps, incl. "You see the Ink cost before it starts" | T-511 copy. Cost line PENDING Ajay (T-388 AC4) |
+| 5 | 5 | Drafts today: bail application (regular), bail application (anticipatory), temporary injunction (Order 39) | Code-confirmed; Ajay signs on the day against prod |
+| 6 | 6 | "Lawie works from the facts you give. When something is missing, it asks you or marks the gap for you to fill." | Ajay, signed (30 Oct). Replaced the earlier two-card wording, which he did not sign |
+| 7 | 7 | "Amounts appear in figures and in words." "Each draft follows a template for its document type. You can edit any line." | Code-confirmed; Ajay signs on the day against prod |
+| 8 | 8 | "A checks panel lists items for your review. Each one takes you to its paragraph." Example prompt (fictional) | Ajay signs on the day against prod |
+| 9 | 9 | Privacy, both lines signed by Ajay word for word. M-LP-12f: "What you describe goes to an AI service to write the draft. The privacy policy says who receives it." AJ-DECK-P1 (signed for use now): "We do not log the text of your matters or drafts. Our logs and error reports record ids, counts and error codes; we are closing the last gaps where an error message could carry a fragment." Grievance line = AJ-517-M11 signed text: "Grievance Officer: Abhinav Anand. Email: contact@lawie.in. We acknowledge every complaint within 24 hours and resolve it within 15 days." | Arjun's stronger line is HELD until T-645 ships and he re-audits prod (then "anonymous ids" becomes "internal ids"). Grievance email: contact@lawie.in (founder, 30 Oct). Grievance line signed (AJ-517-M11) |
+| 10 | 10 | Free ₹0, 5 Ink on sign-up once email verified (lifetime). Solo ₹799 a month, 50 Ink. Top-ups ₹65/3, ₹199/10, ₹499/28; top-up Ink never expires. "Prices include GST." | Ajay signs on the day against prod; Vikram confirms current |
+| 11 | 11 | How to start: lawie.in, verify email (5 Ink added), describe a matter you know | Landing copy |
+| 12 | 12 | "Start with a matter you already know." Demo offer for a bar association; footer is Ajay's disclaimer | Demo contact: contact@lawie.in (founder, 30 Oct) |
+
+## Left out on purpose
+- Time saved: no measured data. If the founder has real timings from real use, bring them with the source and Ajay decides.
+- Real screenshots: none supplied yet. Needs 3-4 prod screenshots of a FICTIONAL matter (describe screen, Ink cost, a draft with a missing-fact question, checks panel). Prod drafting failed Anushka's check on 26 Oct; confirm each screen works before use.
+- Pro plan, yearly plans, "more documents coming", any outcome, speed or accuracy claim.
+
+## Known prod issue (Priya, 27 Oct)
+The O.39 cause title can show {plaintiff} and {defendant} unfilled. No screenshot of an O.39 cause title until it is fixed. Screenshots wait for Anushka's prod run. Grievance email and demo contact: Priya is asking the founder.
+
+## Ajay ruling, 30 Oct (handoff/legal/meera-t705-copy-and-deck-ajay.md)
+Slide 6 replaced with his sentence. Slides 5, 7, 8 and 10 are signed on the day, against prod. The Grievance line needs a name and contact (founder, via Priya). Everything else is signed.

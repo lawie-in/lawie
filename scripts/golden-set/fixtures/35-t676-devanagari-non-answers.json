@@ -1,0 +1,119 @@
+{
+  "id": "35-t676-devanagari-non-answers",
+  "pack": "bail_regular",
+  "title": "T-683 rule 4, bail: पता नहीं, a bare नहीं on an optional fact and 'koi nahi' are non-answers (no fact, never reassigned); नहीं on a choice is the choice 'No'",
+  "risk": "Rule 4 (Ajay): a non-answer never becomes a fact for any key and is never filed under a key the user was not asked about.",
+  "source": "Ajay T-683 rule 4, T-190 condition 5, T-612 (4). Fictional data. T-671's Latin Hinglish forms are not in code yet. Phase 1 cassette: the recorded extract reply is the v3 Extractor's (T-683) reply; it is replayed through services/v3/validate.ts by apps/drafting/src/__tests__/v3/cassettes.test.ts. Intake is not wired to v3 until phase 2, so golden:set cannot run it yet (the recorded variant is v3_extract, which the default dry run skips). Ledger displays: dates DD.MM.YYYY, amounts as rupees, lists joined by ', '.",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": "Ajay, T-683 test list (handoff/legal/run5-rulings-ajay.md, 29 Oct 2026): expected candidates are legal-content expectations",
+  "language": "bilingual",
+  "description": "Bail application for Sample Person 1 in FIR No. 56/2026.",
+  "court": {
+    "state": "Uttar Pradesh",
+    "court_type": "sessions",
+    "court": "up_sessions_lucknow"
+  },
+  "answers": [
+    {
+      "key": "police_station",
+      "value": "पता नहीं"
+    },
+    {
+      "key": "dependants",
+      "value": "नहीं"
+    },
+    {
+      "key": "named_in_fir",
+      "value": "नहीं"
+    },
+    {
+      "key": "medical_condition",
+      "value": "koi nahi"
+    }
+  ],
+  "v3_stage": 1,
+  "v3_answers": [
+    {
+      "turn": 1,
+      "asked": ["police_station"],
+      "text": "पता नहीं"
+    },
+    {
+      "turn": 2,
+      "asked": ["dependants"],
+      "text": "नहीं"
+    },
+    {
+      "turn": 3,
+      "asked": ["named_in_fir"],
+      "text": "नहीं"
+    },
+    {
+      "turn": 4,
+      "asked": ["medical_condition"],
+      "text": "koi nahi"
+    }
+  ],
+  "expect": {
+    "ledger": [
+      {
+        "key": "applicant_name",
+        "display": "Sample Person 1",
+        "why": "given"
+      },
+      {
+        "key": "fir_number",
+        "display": "56/2026",
+        "why": "given"
+      },
+      {
+        "key": "named_in_fir",
+        "display": "No",
+        "why": "T-676: नहीं on a yes/no/not-known choice is No"
+      }
+    ],
+    "absent": [
+      {
+        "any_of": ["पता नहीं", "koi nahi", "नहीं"],
+        "why": "rule 4: a non-answer never reaches the draft"
+      }
+    ]
+  },
+  "v3_expect": {
+    "non_answers": [
+      {
+        "key": "police_station",
+        "quote": "पता नहीं"
+      },
+      {
+        "key": "dependants",
+        "quote": "नहीं"
+      },
+      {
+        "key": "medical_condition",
+        "quote": "koi nahi"
+      }
+    ],
+    "absent_keys": ["police_station", "dependants", "medical_condition"],
+    "unresolved": [],
+    "dropped": {
+      "non_answer": 3,
+      "non_answer_not_asked": 1
+    },
+    "values": {
+      "applicant_name": "Sample Person 1",
+      "fir_number": "56/2026",
+      "named_in_fir": "No"
+    }
+  },
+  "recorded": {
+    "v3_extract": {
+      "reception": "{\"outcome\": \"read\", \"read\": [], \"conflicts\": [], \"questions\": []}",
+      "extract": [
+        "{\"facts\": [{\"key\": \"applicant_name\", \"source\": \"description\", \"turn\": 0, \"quote\": \"for Sample Person 1\", \"value\": \"Sample Person 1\", \"confidence\": 0.97}, {\"key\": \"fir_number\", \"source\": \"description\", \"turn\": 0, \"quote\": \"FIR No. 56/2026\", \"value\": \"56/2026\", \"confidence\": 0.97}], \"non_answers\": [], \"unresolved\": []}",
+        "{\"facts\": [{\"key\": \"named_in_fir\", \"source\": \"answer\", \"turn\": 3, \"quote\": \"नहीं\", \"value\": \"No\", \"confidence\": 0.95}], \"non_answers\": [{\"key\": \"police_station\", \"source\": \"answer\", \"turn\": 1, \"quote\": \"पता नहीं\"}, {\"key\": \"dependants\", \"source\": \"answer\", \"turn\": 2, \"quote\": \"नहीं\"}, {\"key\": \"medical_condition\", \"source\": \"answer\", \"turn\": 4, \"quote\": \"koi nahi\"}, {\"key\": \"fir_number\", \"source\": \"answer\", \"turn\": 1, \"quote\": \"पता नहीं\"}], \"unresolved\": []}"
+      ],
+      "drafter": "1. That the applicant Sample Person 1 is not named in FIR No. 56/2026."
+    }
+  }
+}

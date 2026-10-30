@@ -1,38 +1,33 @@
 /**
  * Auth-side credit-bonus helper.
  *
- * Drafting service owns the canonical credit accounting (CreditLedger collection,
- * spend/grant logic), but for **bonuses fired from auth events** (daily login,
- * referral signup) we write directly to the shared Mongo collections to avoid a
- * cross-service round-trip on the login hot path.
+ * Drafting service owns the canonical credit accounting, but for **grants fired from auth
+ * events** (signup, referral signup, the develop-only test account) we write directly to the
+ * shared Mongo collections to avoid a cross-service round-trip on the sign-up path.
  *
- * The CreditLedger schema is duplicated here only to the extent of what we INSERT
- * — we do NOT register a Mongoose model for it (drafting will register the
- * canonical one). We just use `mongoose.connection.collection('creditledgers')`
- * directly.
+ * SCRUM-101: grantSignupBonus seeds 5 Ink (10 units) into inkTopup.
  *
- * SCRUM-101: grantSignupBonus also seeds 5 Ink (10 units) into inkTopup.
+ * T-652 (Ajay AJ-646-M9b and AJ-646-M9c, 28 Oct 2026): every earnedCredits accrual is stopped.
+ * The daily login bonus (+2, source `login_bonus`), the rating bonus (+1, `rating_bonus`, in
+ * drafting) and the signup earnedCredits grant (+5, `signup_bonus`) are removed. Users were
+ * never offered them, so the processing had no stated purpose (DPDP purpose limitation).
+ * Signing in grants nothing and writes no creditledger row. The only signup effect left is the
+ * advertised, spendable free Ink seed. Existing earnedCredits stay as they are: hidden,
+ * unspendable, unmentioned. Any future bonus scheme's offer and terms go to Ajay first.
  */
 import mongoose from 'mongoose';
 
 import logger from '../config/logger';
-import { User } from '../models/User.model';
-
-export const DAILY_LOGIN_BONUS = 2;
-// Free credits given to every new user on signup — change this to adjust the grant.
-// Flipped 10 → 5 per founder direction 2026-05-26 (SCRUM-100). Second 5 unlocks
-// after user submits a review (SCRUM-101).
-export const SIGNUP_BONUS_CREDITS = 5;
 
 /**
  * T-351 (Priya, on the founder's delegation, 12 Oct 2026): no free Ink until the address is
  * verified. Google sign-in counts as verified. This filter goes inside each bonus's atomic
  * findOneAndUpdate, so the eligibility check and the grant are one write: an unverified email
- * user matches nothing, gets nothing, and has no idempotency marker (signupBonusGrantedAt /
- * lastLoginBonusAt) stamped. Calling grantSignupBonus again after T-223 sets emailVerified
+ * user matches nothing, gets nothing, and has no idempotency marker (signupBonusGrantedAt)
+ * stamped. Calling grantSignupBonus again after T-223 sets emailVerified
  * then grants it exactly once (the signupBonusGrantedAt guard still applies).
  */
-const VERIFIED_FOR_BONUS = {
+export const VERIFIED_FOR_BONUS = {
   $or: [
     { authProvider: 'google' },
     { emailVerified: true },
@@ -41,55 +36,8 @@ const VERIFIED_FOR_BONUS = {
   ],
 };
 
-/**
- * Grant the daily login bonus if the user hasn't received it today.
- * Returns the amount granted (0 if already claimed today, or if the user is an email user
- * whose address is not verified yet — T-351).
- */
-export async function tryGrantDailyLoginBonus(userId: string): Promise<number> {
-  if (!mongoose.Types.ObjectId.isValid(userId)) return 0;
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-
-  // Atomic guard — only one of two simultaneous logins grants.
-  // T-351: and only for a Google or verified-email user (VERIFIED_FOR_BONUS).
-  const updated = await User.findOneAndUpdate(
-    {
-      _id: new mongoose.Types.ObjectId(userId),
-      $and: [
-        {
-          $or: [
-            { lastLoginBonusAt: { $exists: false } },
-            { lastLoginBonusAt: null },
-            { lastLoginBonusAt: { $lt: startOfToday } },
-          ],
-        },
-        VERIFIED_FOR_BONUS,
-        // T-563 (Arjun default 4): a test account never gets the daily login bonus.
-        { isTestAccount: { $ne: true } },
-      ],
-    },
-    {
-      $inc: { earnedCredits: DAILY_LOGIN_BONUS },
-      $set: { lastLoginBonusAt: new Date() },
-    },
-    { new: true },
-  ).lean();
-
-  // null → already claimed today, unverified email user (T-351), or no such user.
-  if (!updated) return 0;
-
-  await writeLedgerRow({
-    userId,
-    source: 'login_bonus',
-    bucket: 'earnedCredits',
-    amount: DAILY_LOGIN_BONUS,
-    balanceAfter: updated.earnedCredits ?? DAILY_LOGIN_BONUS,
-    reference: 'Daily login bonus',
-  });
-
-  return DAILY_LOGIN_BONUS;
-}
+/** SCRUM-101 / T-657 — the free seed: 5 Ink, stored at 2 units per Ink. */
+export const FREE_SEED_UNITS = 10;
 
 /**
  * Grant referral Ink to a newly-signed-up user.
@@ -187,130 +135,139 @@ export async function referralInkLanded(userId: string, referralCode: string): P
 }
 
 /**
- * Grant SIGNUP_BONUS_CREDITS to a newly-registered user.
+ * Seed a newly-registered user's free Ink: 5 Ink (10 units) into inkTopup, plus one inkledger
+ * row with reason 'free_seed'. T-652 (AJ-646-M9c): no earnedCredits, no creditledger row, no
+ * drafting signal; the free Ink seed is the only effect.
  * T-351: grants nothing to an email user whose address is not verified yet; call again once
  * it is (T-223) and it grants then.
- * Idempotent — uses signupBonusGrantedAt as an atomic guard so retries,
- * double-taps, or supervisor restarts never credit the user twice.
- * Non-fatal — never throws.
+ *
+ * T-657 (Priya/Arjun/Ajay): the once-only marker and the Ink land in ONE atomic write.
+ *  (a) One raw `users` pipeline findOneAndUpdate (like grantTestInk). Its filter is the guard:
+ *      marker absent or null AND VERIFIED_FOR_BONUS. Its $set adds 10 units to inkTopup and
+ *      stamps signupBonusGrantedAt and freeSeedAt ('$$NOW') together. Two parallel calls give
+ *      exactly one +10: the loser matches nothing.
+ *  (b) Then the inkledger row, keyed on the user (`_id: 'free_seed:<userId>'`), so it is written
+ *      at most once; a duplicate key (E11000) counts as written.
+ *  (c) Heal: if (a) matched nothing but the user has freeSeedAt (marked by THIS code, so the Ink
+ *      did land) and the row is missing, (b) is retried. A marker set by older code (no
+ *      freeSeedAt) is never healed here; the T-657 backfill script covers those.
+ * Invariant: a marker set here means inkTopup was incremented. A failure in (a) writes nothing
+ * and the next call retries; a failure in (b) is healed by the next call. Never marked without
+ * the Ink.
+ * freeSeedAt is raw-only (not in the Mongoose schema), like inkTopup.
+ * Non-fatal — never throws. Logs carry userId and the error name only (no message, T-210).
  */
 export async function grantSignupBonus(userId: string): Promise<void> {
   if (!mongoose.Types.ObjectId.isValid(userId)) return;
-
-  const updated = await User.findOneAndUpdate(
-    {
-      _id: new mongoose.Types.ObjectId(userId),
-      $and: [
-        { $or: [{ signupBonusGrantedAt: { $exists: false } }, { signupBonusGrantedAt: null }] },
-        // T-351: Google or verified email only. An unverified call matches nothing and leaves
-        // signupBonusGrantedAt unset, so a call after verification still grants (once).
-        VERIFIED_FOR_BONUS,
-      ],
-    },
-    {
-      $inc: { earnedCredits: SIGNUP_BONUS_CREDITS },
-      $set: { signupBonusGrantedAt: new Date() },
-    },
-    { new: true },
-  ).lean();
-
-  // null → already granted, unverified email user (T-351), or user not found.
-  // Skip ledger + Ink seed + drafting signal.
-  if (!updated) return;
-
-  await writeLedgerRow({
-    userId,
-    source: 'signup_bonus',
-    bucket: 'earnedCredits',
-    amount: SIGNUP_BONUS_CREDITS,
-    balanceAfter: updated.earnedCredits ?? SIGNUP_BONUS_CREDITS,
-    reference: `Signup bonus (${SIGNUP_BONUS_CREDITS} free drafts)`,
-  });
-
-  // Seed 5 Ink (10 units) into inkTopup — one-time free tier (SCRUM-101).
-  // T-298 (Arjun, ruling c): order-independent with the referral grant, which may already have
-  // created inkTopup. The once-only guard is signupBonusGrantedAt above (we only get here on
-  // the winning call), so this always adds 10 and only fills the other ink fields if absent.
-  // Pipeline update = one atomic write. balanceAfter comes from the returned document.
   const conn = mongoose.connection;
-  if (conn.db) {
-    try {
-      const inkSeeded = await conn.db.collection('users').findOneAndUpdate(
-        { _id: new mongoose.Types.ObjectId(userId) },
-        [
-          {
-            $set: {
-              inkTopup: { $add: [{ $ifNull: ['$inkTopup', 0] }, 10] },
-              inkSub: { $ifNull: ['$inkSub', 0] },
-              inkAnnualCarry: { $ifNull: ['$inkAnnualCarry', 0] },
-              inkSubMonthlyAllotment: { $ifNull: ['$inkSubMonthlyAllotment', 0] },
-            },
-          },
+  if (!conn.db) return;
+  const _id = new mongoose.Types.ObjectId(userId);
+  const users = conn.db.collection('users');
+
+  const seeded = await users
+    .findOneAndUpdate(
+      {
+        _id,
+        $and: [
+          { $or: [{ signupBonusGrantedAt: { $exists: false } }, { signupBonusGrantedAt: null }] },
+          // T-351: Google or verified email only. An unverified call matches nothing and leaves
+          // signupBonusGrantedAt unset, so a call after verification still grants (once).
+          VERIFIED_FOR_BONUS,
         ],
-        { returnDocument: 'after' },
-      );
-      if (inkSeeded) {
-        await conn.db.collection('inkledger').insertOne({
-          userId: new mongoose.Types.ObjectId(userId),
-          delta: 10,
-          reason: 'free_seed',
-          sourceBucket: 'topup',
-          balanceAfter: inkSeeded['inkTopup'],
-          createdAt: new Date(),
-        });
-      }
-    } catch (err) {
-      console.warn('[auth] ink seed failed:', err instanceof Error ? err.message : err);
-    }
+      },
+      [
+        {
+          $set: {
+            // T-298 (Arjun, ruling c): order-independent with the referral grant, which may
+            // already have created inkTopup ($inc). So always $add 10, never $set 10, and only
+            // fill the other ink fields if absent. The once-only guard is this same update's
+            // filter (the marker), so only the winning call adds the 10.
+            inkTopup: { $add: [{ $ifNull: ['$inkTopup', 0] }, FREE_SEED_UNITS] },
+            inkSub: { $ifNull: ['$inkSub', 0] },
+            inkAnnualCarry: { $ifNull: ['$inkAnnualCarry', 0] },
+            inkSubMonthlyAllotment: { $ifNull: ['$inkSubMonthlyAllotment', 0] },
+            signupBonusGrantedAt: '$$NOW',
+            freeSeedAt: '$$NOW',
+          },
+        },
+      ],
+      { returnDocument: 'after' },
+    )
+    .catch((err: unknown) => {
+      // Nothing was written (one atomic update); the next call retries.
+      logger.warn({ userId, errName: errNameOf(err) }, 'Free Ink seed failed; nothing written');
+      return undefined;
+    });
+  // undefined: the update threw (logged); null: it matched nothing.
+  if (seeded === undefined) return;
+
+  if (seeded) {
+    await insertFreeSeedRow(userId, _id, seeded['inkTopup']);
+    return;
   }
 
-  // Signal drafting service so enforceFreeLimit can consume these as bonus drafts.
-  const draftingUrl = process.env.DRAFTING_SERVICE_URL ?? 'http://localhost:4002';
+  // null → already granted, unverified email user (T-351), or user not found. Heal only a user
+  // this code marked (freeSeedAt) whose ledger row is missing.
   try {
-    await fetch(`${draftingUrl}/internal/grant-bonus`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-internal-secret': process.env.INTERNAL_SECRET ?? '',
-      },
-      body: JSON.stringify({ userId, bonus: SIGNUP_BONUS_CREDITS }),
-    });
-  } catch {
-    console.warn(`[auth] failed to signal drafting signup bonus for user ${userId}`);
+    const marked = await users.findOne(
+      { _id, freeSeedAt: { $exists: true } },
+      { projection: { _id: 1, inkTopup: 1 } },
+    );
+    if (!marked) return;
+    const hasRow = await conn.db
+      .collection<StringIdRow>('inkledger')
+      .findOne({ _id: freeSeedLedgerId(userId) }, { projection: { _id: 1 } });
+    if (hasRow) return;
+    // balanceAfter here is approximate: the current inkTopup, which may have moved since the
+    // seed (spends, referral Ink, top-ups).
+    await insertFreeSeedRow(userId, _id, marked['inkTopup']);
+  } catch (err) {
+    logger.warn({ userId, errName: errNameOf(err) }, 'Free Ink seed ledger heal failed');
   }
 }
 
-// ── Internal — minimal ledger insert ────────────────────────────────────────
+/** T-657 — an inkledger row keyed by a string _id (the free_seed row). */
+type StringIdRow = { _id: string; [key: string]: unknown };
 
-async function writeLedgerRow(row: {
-  userId: string;
-  source: string;
-  bucket: string;
-  amount: number;
-  balanceAfter: number;
-  reference?: string;
-  metadata?: Record<string, unknown>;
-}): Promise<void> {
-  const conn = mongoose.connection;
-  if (!conn.db) return; // not connected — bonus accounting silently degraded
+/**
+ * T-657 — the free_seed ledger row's deterministic _id: at most one per user. Normalised through
+ * the ObjectId (lower-case hex), so an upper-case id string never misses the existing row.
+ * LOCKSTEP: scripts/backfill-free-seed.ts has a copy (it cannot import this module: env init).
+ */
+export function freeSeedLedgerId(userId: string | mongoose.Types.ObjectId): string {
+  // Callers validate first; a non-ObjectId input (never written) is lower-cased, not thrown on.
+  const hex = mongoose.Types.ObjectId.isValid(userId)
+    ? new mongoose.Types.ObjectId(userId).toHexString()
+    : String(userId).toLowerCase();
+  return `free_seed:${hex}`;
+}
+
+function errNameOf(err: unknown): string {
+  return err instanceof Error ? err.name : 'unknown';
+}
+
+/** Insert the free_seed row; a duplicate key means it is already there. Never throws. */
+async function insertFreeSeedRow(
+  userId: string,
+  _id: mongoose.Types.ObjectId,
+  balanceAfter: unknown,
+): Promise<void> {
+  const db = mongoose.connection.db;
+  if (!db) return;
   try {
-    await conn.db.collection('creditledgers').insertOne({
-      userId: new mongoose.Types.ObjectId(row.userId),
-      source: row.source,
-      bucket: row.bucket,
-      amount: row.amount,
-      balanceAfter: row.balanceAfter,
-      reference: row.reference,
-      metadata: row.metadata,
+    await db.collection<StringIdRow>('inkledger').insertOne({
+      _id: freeSeedLedgerId(userId),
+      userId: _id,
+      delta: FREE_SEED_UNITS,
+      reason: 'free_seed',
+      sourceBucket: 'topup',
+      balanceAfter,
       createdAt: new Date(),
     });
   } catch (err) {
-    // Never break a login due to ledger insert failure. We'll surface this
-    // via Sentry once that's wired into auth.
-    console.warn(
-      '[auth] credit-bonus ledger insert failed:',
-      err instanceof Error ? err.message : err,
-    );
+    if ((err as { code?: unknown } | null)?.code === 11000) return;
+    // The user already has the Ink and the marker; the next call heals the row.
+    logger.warn({ userId, errName: errNameOf(err) }, 'Free Ink seed ledger insert failed');
   }
 }
 

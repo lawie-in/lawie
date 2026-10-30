@@ -97,3 +97,6 @@ Each becomes a `T-nnn` (type ops) from Priya unless Arjun calls it an incident. 
 
 ## Roster note (Rita)
 The HR org chart `/docs/org/lawie_org_chart.md` does not exist in this repository. The only rosters here are Arjun's: the "Leads and crew (roster)" table in `.claude/README.md` and the `@mentions` list in `.claude/docs/multi-lead.md`. Rita does not edit Arjun's files; the rows to add are in Rita's handback to Arjun.
+
+## Standing go for release deploys (founder, 29 Oct 2026)
+A `release/*` PR merged into `main` is the founder's go to deploy that merge commit. Verify it is a release merge on main (not a direct push), deploy per the runbook, report to Arjun. Env, seeds and document changes still need the founder's go in your chat. Detail: handoff/ops/arjun-prod-access.md, 29 Oct.

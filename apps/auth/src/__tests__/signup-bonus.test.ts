@@ -1,16 +1,16 @@
 import mongoose from 'mongoose';
 
 import { User } from '../models/User.model';
-import { grantSignupBonus, SIGNUP_BONUS_CREDITS } from '../services/credit-bonus.service';
+import { grantSignupBonus } from '../services/credit-bonus.service';
 
 import './setupDb';
 
-describe('grantSignupBonus — SCRUM-100 idempotency + constant flip', () => {
-  it('SIGNUP_BONUS_CREDITS equals 5 (not 10)', () => {
-    expect(SIGNUP_BONUS_CREDITS).toBe(5);
-  });
+// T-652: the +5 earnedCredits signup grant is gone; only the once-only free Ink seed remains.
+describe('grantSignupBonus — SCRUM-100 idempotency, T-652 Ink-only', () => {
+  const users = () => mongoose.connection.db!.collection('users');
+  const ink = () => mongoose.connection.db!.collection('inkledger');
 
-  it('grants exactly 5 credits on first call', async () => {
+  it('first call seeds 10 Ink units, stamps the marker, grants no earnedCredits', async () => {
     const user = await User.create({
       email: 'test@example.com',
       name: 'Test User',
@@ -21,11 +21,12 @@ describe('grantSignupBonus — SCRUM-100 idempotency + constant flip', () => {
     await grantSignupBonus(user._id.toString());
 
     const updated = await User.findById(user._id).lean();
-    expect(updated!.earnedCredits).toBe(5);
+    expect(updated!.earnedCredits ?? 0).toBe(0);
     expect(updated!.signupBonusGrantedAt).toBeInstanceOf(Date);
+    expect((await users().findOne({ _id: user._id }))!.inkTopup).toBe(10);
   });
 
-  it('second call is a no-op — no double credit', async () => {
+  it('second call is a no-op — no double Ink, no creditledger row ever', async () => {
     const user = await User.create({
       email: 'test2@example.com',
       name: 'Test User 2',
@@ -36,15 +37,13 @@ describe('grantSignupBonus — SCRUM-100 idempotency + constant flip', () => {
     await grantSignupBonus(user._id.toString());
     await grantSignupBonus(user._id.toString());
 
-    const updated = await User.findById(user._id).lean();
-    expect(updated!.earnedCredits).toBe(5);
-
-    // Only one ledger row
-    const ledgerRows = await mongoose.connection
-      .db!.collection('creditledgers')
-      .find({ userId: user._id, source: 'signup_bonus' })
-      .toArray();
-    expect(ledgerRows).toHaveLength(1);
+    expect((await users().findOne({ _id: user._id }))!.inkTopup).toBe(10);
+    expect(await ink().countDocuments({ userId: user._id, reason: 'free_seed' })).toBe(1);
+    expect(
+      await mongoose.connection
+        .db!.collection('creditledgers')
+        .countDocuments({ userId: user._id }),
+    ).toBe(0);
   });
 
   it('handles invalid userId gracefully', async () => {

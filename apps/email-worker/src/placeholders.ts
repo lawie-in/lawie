@@ -23,6 +23,7 @@ import {
   UNVERIFIED_DELETION_NOTICE_STRINGS,
 } from './templates/auth/unverifiedDeletionNotice';
 import { VERIFY_EMAIL_STRINGS } from './templates/auth/verifyEmail';
+import { WELCOME_STRINGS } from './templates/auth/welcome';
 import { CREDIT_NOTE_STRINGS } from './templates/billing/creditNote';
 import { TAX_INVOICE_STRINGS } from './templates/billing/taxInvoice';
 
@@ -36,8 +37,8 @@ function footerLines(strings: Record<string, string>): readonly string[] {
 }
 
 /**
- * Each template's static footer. A template with no footer (auth.welcome) has no entry. Add a
- * template here when it has a footer, so a placeholder in it is caught.
+ * Each template's static footer. A template with no footer has no entry. Add a template here
+ * when it has a footer, so a placeholder in it is caught.
  */
 const TEMPLATE_FOOTERS: Partial<Record<EmailTemplate, readonly string[]>> = {
   'auth.verifyEmail': footerLines(VERIFY_EMAIL_STRINGS),
@@ -52,6 +53,8 @@ const TEMPLATE_FOOTERS: Partial<Record<EmailTemplate, readonly string[]>> = {
   ],
   // T-522: signed footer lines reused from the verify and reset mails (no placeholders).
   'auth.signupAttempt': footerLines(SIGNUP_ATTEMPT_STRINGS),
+  // T-587 (AJ-587-M1, review item 25): the reset-mail footer set (no placeholders).
+  'auth.welcome': footerLines(WELCOME_STRINGS),
   // T-436 (b/c): Ajay Addendum 5 #1, the Ranchi footer (no placeholders).
   'billing.taxInvoice': footerLines(TAX_INVOICE_STRINGS),
   // Addendum 9 #5 (footer line 2); lines 1, 3 and 4 as in the invoice email.
@@ -78,7 +81,9 @@ export function anyTemplateUnfilled(): boolean {
  * a worker without it still boots and sends every other email. Unset or blank → undefined;
  * whitespace runs are collapsed.
  *
- * This is a passwordReset-only guard, enforced in the worker before the mint. It is deliberately
+ * The same guard is used for auth.passwordReset, auth.signupAttempt (AJ-522-S9) and auth.welcome
+ * (AJ-587-M1), whose footer line 1 carries this address; the worker checks it before the reset
+ * mint or the auth prepare fetch, so a refused job never calls auth. It is deliberately
  * NOT part of TEMPLATE_FOOTERS / UNFILLED_PLACEHOLDERS: anyTemplateUnfilled() gates boot and
  * /health, and would hold the verify and invoice emails too.
  */

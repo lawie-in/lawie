@@ -324,6 +324,7 @@ describe('erase', () => {
         reviewtokens: 1,
         factdiffs: 1,
         factledgers: 1,
+        factledgers_v3: 0,
         generations: 1,
         llmauxcalls: 1,
         usagelogs: 1,

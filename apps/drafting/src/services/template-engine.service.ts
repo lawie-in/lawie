@@ -44,6 +44,7 @@ import {
   type LawSwitchResult,
   type ProcedureCode,
 } from './law-switch';
+import { policeStationName, stripTrailingStationMarker } from './police-station-name';
 import { getTemplateRegistry } from './template-promoter';
 
 /**
@@ -1227,42 +1228,15 @@ function extractCityFromCourtName(courtName: string): string {
 }
 
 /**
- * SCRUM-63: Strip a leading prefix (and optional trailing space/dot) from a field value.
- * @param value — raw form input (e.g. "PS Chanho" or "P.S. Chanho")
- * @param prefixes — array of regex fragments to try (e.g. ['Police Station', 'P\\.?S\\.?'])
- * @returns value with the first matching prefix removed (once only), or the original
- *   value if none matched or if removing it would leave nothing (AJ-2026-10-08-T139-A1)
- */
-function stripLeadingPrefix(value: string, prefixes: string[]): string {
-  for (const prefix of prefixes) {
-    const re = new RegExp(`^${prefix}[\\s.]+`, 'i');
-    if (re.test(value)) {
-      const stripped = value.replace(re, '').trim();
-      if (stripped === '') return value;
-      // AJ-2026-10-08-T139-final C2: a leading bare थाना may be part of the
-      // station's name ("थाना भवन"). It is kept when the rest is one word, or
-      // when a station word also ends the value.
-      if (prefix === 'थाना' && (!/\s/.test(stripped) || STATION_SUFFIX.test(value))) return value;
-      return stripped;
-    }
-  }
-  return value;
-}
-
-/** A station word ending a value, with what separates it from the name before it. */
-const STATION_SUFFIX =
-  /[\s,]+(?:p\.?\s?s\.?|thana|police\s+station|पुलिस\s+थाना|थाना|पुलिस\s+स्टेशन)\s*$/i;
-
-/**
- * AJ-2026-10-08-T139 1(c): every template writes its own "Police Station" or
- * "P.S." before `{police_station}`, so a station read as the advocate wrote it
- * ("Saraidhela PS") loses a trailing PS, P.S., thana, police station,
- * पुलिस थाना, थाना or पुलिस स्टेशन here, at render only. The brief keeps the advocate's words. A
- * value that is only the station word is left as it is.
+ * AJ-2026-10-08-T139 1(c), as amended by Ajay T-612 (6a)/(6b) for T-638: every
+ * template writes its own "Police Station" or "P.S." before `{police_station}`,
+ * so one trailing PS, P.S., P S, Police Station, पुलिस स्टेशन, पुलिस थाना, Thana
+ * or थाना is removed here, at render only. The brief keeps the advocate's
+ * words. A value that is only the station word, or one glued to the name
+ * ("Chaps"), is left as it is. The full table is `policeStationName`.
  */
 export function stripStationSuffix(value: string): string {
-  const stripped = value.replace(STATION_SUFFIX, '').trim();
-  return stripped === '' ? value : stripped;
+  return stripTrailingStationMarker(value);
 }
 
 // ── Placeholder Replacement ─────────────────────────────────────────────────
@@ -1947,6 +1921,14 @@ export function buildPlaceholderContext(
     ctx.courtPlace = notCourtPlaceValue;
   }
 
+  // T-488 (from T-479): any pack with a state_of_filing field (certiorari,
+  // quo_warranto, interim_application) gets it copied to {state} when no
+  // `state` answer is given. quo_warranto and interim_application have no
+  // {state} in their cause title and are not in STATE_FROM_COURT_PACKS.
+  const stateOfFiling =
+    isUnanswered(ctx.state) && !isUnanswered(ctx.state_of_filing) ? ctx.state_of_filing : undefined;
+  if (stateOfFiling !== undefined) ctx.state = stateOfFiling;
+
   // SCRUM-54 B2: Capitalise state name (form sends lowercase stateId like "bihar")
   if (ctx.state) {
     ctx.state = ctx.state
@@ -1954,7 +1936,11 @@ export function buildPlaceholderContext(
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(' ');
   }
+  const answeredState = stateOfFiling !== undefined ? ctx.state : undefined;
   applyStateFromCourt(config.template_id, ctx, courtData);
+  // T-488: applyStateFromCourt takes out a {state} that is only the court
+  // picker's State; the State the user answered is not that, so it stays.
+  if (answeredState !== undefined && isUnanswered(ctx.state)) ctx.state = answeredState;
 
   // SCRUM-54 B5, T-340: an ISO date in any "*date*" key, or in any field the
   // template declares as type "date" (e.g. minor_dob, custody_since), prints as
@@ -2137,20 +2123,13 @@ export function buildPlaceholderContext(
     }
   }
 
-  // SCRUM-63: Strip duplicate prefixes from known fields (A8 fix).
-  // Templates hardcode "PS {police_station}" — if the user already typed "PS Chanho"
-  // the output becomes "PS PS Chanho". Strip the leading prefix from the value so the
-  // template-provided prefix is the canonical one.
+  // SCRUM-63 (A8), as amended by T-638 (Ajay T-612 (6a)/(6b), amending T-139 C2):
+  // the template writes its own "Police Station", so the value loses its station
+  // markers by the same table as the ledger and the D1 renderer, applied once per
+  // stage (store, then render). A leading bare "Thana X" / "थाना X" is part of the
+  // name and stays; पुलिस स्टेशन and पुलिस थाना always go.
   if (ctx.police_station) {
-    ctx.police_station = stripStationSuffix(
-      stripLeadingPrefix(ctx.police_station, [
-        'Police Station',
-        'P\\.?S\\.?',
-        'पुलिस\\s+स्टेशन',
-        'पुलिस\\s+थाना',
-        'थाना',
-      ]),
-    );
+    ctx.police_station = policeStationName(ctx.police_station);
   }
 
   // T-479: set after the recursive pass, so the format's tokens are filled
@@ -2182,6 +2161,9 @@ export const PLACEHOLDER_ALIASES: ReadonlyArray<
   ['petitioner', ['petitioner_name']],
   ['respondent', ['respondent_name']],
   ['complainant', ['complainant_name']],
+  // T-644: the civil packs' cause titles print {plaintiff} and {defendant}.
+  ['plaintiff', ['plaintiff_name']],
+  ['defendant', ['defendant_name']],
   ['parentName', ['applicant_parentage', 'applicant_father_name']],
   ['parentRelation', ['parent_relation']],
   ['age', ['applicant_age', 'appellant_age']],
@@ -2250,6 +2232,7 @@ const CAUSE_TITLE_PARTY_BLANKS: Readonly<Record<string, ReadonlyArray<readonly [
       ['statute_invoked', CERTIORARI_STATUTE_BLANK],
       ['grievance_summary', GRIEVANCE_SUMMARY_BLANK],
     ],
+    temporary_injunction_o39: [['suit_number', 'Suit No. _____ of {current_year}']],
   };
 
 /** True for a value that is empty or a `[To be confirmed: …]` / `{{MISSING: …}}` blank. */
@@ -2494,7 +2477,7 @@ function applyStateFromCourt(
 }
 
 /** T-479: the State the prompt's civil-writ State line names (same guard as the cause title). */
-function promptCourtState(
+export function promptCourtState(
   ctx: PlaceholderContext | undefined,
   courtData: CourtLookupData | undefined,
 ): string | undefined {

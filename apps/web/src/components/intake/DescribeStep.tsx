@@ -17,9 +17,10 @@ import { useId } from 'react';
 import { folio, h1, linkButton, page, sub } from './nlUi';
 
 import { Button, Textarea } from '@/components/ui';
+import { DESCRIPTION_MAX } from '@/lib/draftPrefill';
 
 export const DESCRIPTION_MIN = 20;
-export const DESCRIPTION_MAX = 4000;
+export { DESCRIPTION_MAX };
 
 /** Signed: handoff/copy/T-511-copy-v1.md (dashboard command bar placeholder; spec 04 empty state). */
 export const DESCRIBE_PLACEHOLDER = 'A bail application for a client arrested on Tuesday…';
@@ -50,8 +51,12 @@ export default function DescribeStep({
 
   return (
     <div className={page}>
-      <h1 className={`${h1} break-words`}>{documentName ?? 'What do you need to draft?'}</h1>
-      <p className={sub}>
+      {/* T-704a (Rajesh): below 640 the heading block gets the folio's base inset (p-nl-6), so
+          its text lines up with the form's text; from 640 it is as it was. */}
+      <h1 className={`${h1} px-nl-6 pt-nl-6 break-words min-[640px]:px-0 min-[640px]:pt-0`}>
+        {documentName ?? 'What do you need to draft?'}
+      </h1>
+      <p className={`${sub} px-nl-6 min-[640px]:px-0`}>
         {documentName
           ? 'Describe the matter in your own words. We then ask for the details this document needs.'
           : 'Describe the matter in your own words. We will suggest a document and ask for the details it needs.'}

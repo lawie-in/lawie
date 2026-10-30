@@ -109,8 +109,8 @@ describe('T-334 the _averments hashes are the ones Ajay signed', () => {
   // bail_regular re-recorded by T-245a, approved by Ajay in Addendum 5 (41a4b27), for the Addendum 2 #1 diff only
   // (the notice_provision condition and averment). Old value 14bc53c3…0b04.
   const SIGNED: Record<string, string> = {
-    bail_regular: 'df163457bd78cd19698d968d8e80a278fd738590aa779018c6ab25202f1fa923',
-    bail_anticipatory: '270a841d242ef26fc74859cfa94b4bf6feb414bbf0a01ffb32f1a7ae8caa83de',
+    bail_regular: '8ee0a7569fe463b93ab5d0c951b6cf4e8562a3c389fd49af1cd06e41b824b26f',
+    bail_anticipatory: '4173d669e03be93ec6d882bf4b0fde28cd68ceed1274f50347f6914e9e830fc6',
     default_bail: '2e882516bf7c5ad8f35edace6fbc53b5c264112fc9f4005a06b5878e78bdc96d',
   };
   it.each(Object.keys(SIGNED))('%s.json', (id) => {

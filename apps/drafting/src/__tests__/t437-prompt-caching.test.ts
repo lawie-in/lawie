@@ -27,6 +27,7 @@ import { spendCapCheck } from '../middleware/spendCap';
 import { AppSetting } from '../models/AppSetting.model';
 import { Generation } from '../models/Generation.model';
 import { LlmAuxCall } from '../models/LlmAuxCall.model';
+import { seedCourts } from './seedCourts';
 import { createVerifiedUser } from './verifiedUser';
 import { recordGeneration } from '../routes/documents.routes';
 import { cachedSystemBlocks, streamGenerateFromBrief } from '../services/ai.service';
@@ -112,6 +113,9 @@ afterEach(() => {
 // ═════════════════════════════════════════════════════════════════════════════
 // (1) Parsers
 // ═════════════════════════════════════════════════════════════════════════════
+
+// T-686: an id-shaped court with no active row stops the run, so the court is seeded.
+seedCourts('district_sessions_patna');
 
 describe('parsers read the cache fields (AC3)', () => {
   it('message_start: uncached input, cache writes, cache reads and the 1h/5m split', () => {

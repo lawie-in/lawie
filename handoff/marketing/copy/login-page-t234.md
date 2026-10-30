@@ -86,7 +86,7 @@ Word for word from Ajay's ruling of 11 Oct 2026 in the ticket. Rajesh's draft is
 | R8 | Modal eyebrow | "Referral offer" | Referral offer | 14 | |
 | R9 | Modal title | "You've been invited!" | You've been invited | 19 | No exclamation, calmer |
 | R10 | Modal benefit 1 | "{n} Ink credit added to your account on sign-in" | {n} Ink added to your account when you sign up | ~45 | "sign-in" was wrong for a new account |
-| R11 | Modal benefit 2 | "Stacks with your free daily login bonus" | **Unchanged, needs Priya** | n/a | Is there a daily login bonus today? If not, delete the line |
+| ~~R11~~ | ~~Modal benefit 2~~ | ~~"Stacks with your free daily login bonus"~~ | **Withdrawn, AJ-646-M9b** | n/a | The daily login bonus was never a real offer. Line deleted. |
 | R12 | Modal benefit 3 | "No credit card required — start drafting immediately" | **Unchanged, needs Priya**; if confirmed: "No card needed to sign up." | 26 | Card-free sign-up must be confirmed before we say it |
 | R13 | Modal CTA | "Claim offer" (replaces "Claim offer & continue with Google") | Claim offer | 11 | Alt: "Use this code" (13). Closes the modal and returns to the form (Priya decision 2) |
 | R14 | Modal footnote | "Bonus applied automatically after sign-in" | Your bonus is added when you create your account. | 49 | |
@@ -119,13 +119,13 @@ E1 shows only when there are two or more items; a single message (409, 401, 403,
 
 ## Open for Meera / Priya
 
-1. R11 and R12: Priya to confirm the daily login bonus and no-card sign-up, or the lines go.
+1. R11 withdrawn, AJ-646-M9b (the daily login bonus was never a real offer). R12: Priya to confirm no-card sign-up, or the line goes.
 2. Footer under the card still says "AI-assisted drafting tool — not a substitute for legal advice." with "Terms · Privacy". T-252 (Ajay signed) replaces that line site-wide with "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing." Suggest the login page follows T-252. Not in this ticket's list, so not changed here.
 3. F9–F12 must match the API rules exactly; lead to check `apps/auth` before build.
 
 ## Priya (12 Oct 2026)
 
-- "Stacks with your free daily login bonus": drop it. The future of the daily bonus is still open (T-201, T-223), so the page must not promise it.
+- ~~"Stacks with your free daily login bonus"~~: withdrawn, AJ-646-M9b. The daily login bonus was never a real offer, so the page must not mention it.
 - "No credit card required": keep. Sign-up asks for no card.
 
 ## Meera sign-off (12 Oct 2026)

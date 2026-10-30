@@ -45,6 +45,8 @@ Each step refuses without its gate:
 | `doc-writer` | Reviewer `VERDICT: pass` |
 | PR | All four reports |
 
+Before merge, the `tester` runs `test:sanity` plus the ticket's own tests (with `--selectProjects full` for ad-hoc paths), not the full suite; the full tier runs nightly and on `release/**` (see `.claude/docs/coverage.md`).
+
 If a subagent returns `BLOCKED: <question>`, that question is for you, not the founder — resolve it yourself (from the ticket, the repo, or by asking the user) and re-dispatch, or escalate to the founder only if you genuinely can't resolve it.
 
 ## 5. Review loop
@@ -217,3 +219,7 @@ The rule is mechanical:
   founder instead.
 - If the `ArtifactData` tool is unavailable in your session, say so at once and stop before
   branching. Working blind on a parallel ticket is how two leads collide.
+
+## Two-strike rule (founder, 29 Oct 2026)
+
+"If lead devs fail in two iterations, then Arjun solves the problem by reviewing their work." When a ticket's headline fails Anushka's check twice (or the reviewer twice, or two prod releases), the lead stops dispatching new rounds. Arjun reads the branch and the failing path himself, writes the exact diagnosis and fix into the ticket file (file:line, the change, the test that proves it in the real flow), and the lead's developer applies that and nothing else. The lead reports the two attempts honestly in the ticket; no third guess goes to prod. Priya tracks strike counts in the ticket Status line.

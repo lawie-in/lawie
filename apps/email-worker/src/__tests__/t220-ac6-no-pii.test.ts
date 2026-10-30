@@ -50,7 +50,7 @@ const baseMail = {
   subject: `Welcome ${LEAK_NAME}`,
   html: `<p>Hello ${LEAK_NAME}</p>`,
   text: `Hello ${LEAK_NAME}`,
-  meta: { template: 'auth.welcome', userId: 'user-42' },
+  meta: { template: 'billing.lowCreditWarning', userId: 'user-42' },
 };
 
 function expectClean(text: string) {
@@ -105,7 +105,11 @@ describe('T-220 AC6 dry-run logs', () => {
     const text = allLogText();
     expectClean(text);
     const line = parsedLogs().find((l) => String(l.msg).includes('Dry-run'));
-    expect(line).toMatchObject({ template: 'auth.welcome', userId: 'user-42', toCount: 1 });
+    expect(line).toMatchObject({
+      template: 'billing.lowCreditWarning',
+      userId: 'user-42',
+      toCount: 1,
+    });
   });
 
   it('SMTP dry-run: same', async () => {
@@ -114,14 +118,14 @@ describe('T-220 AC6 dry-run logs', () => {
     await sendEmail(baseMail);
     expectClean(allLogText());
     const line = parsedLogs().find((l) => String(l.msg).includes('Dry-run'));
-    expect(line).toMatchObject({ template: 'auth.welcome', userId: 'user-42' });
+    expect(line).toMatchObject({ template: 'billing.lowCreditWarning', userId: 'user-42' });
   });
 
   it('an id containing "@" is logged as "redacted", not as itself', async () => {
     const { sendEmail } = await import('../providers/ses');
     await sendEmail({
       ...baseMail,
-      meta: { template: 'auth.welcome', userId: LEAK_ADDRESS, jobId: 'x'.repeat(200) },
+      meta: { template: 'billing.lowCreditWarning', userId: LEAK_ADDRESS, jobId: 'x'.repeat(200) },
     });
     const text = allLogText();
     expect(text).not.toContain(LEAK_ADDRESS);
@@ -154,7 +158,7 @@ describe('T-220 AC6 provider error paths', () => {
         expectClean(allLogText());
         const line = parsedLogs().find((l) => l.msg === 'SES send failed');
         expect(line).toMatchObject({
-          template: 'auth.welcome',
+          template: 'billing.lowCreditWarning',
           userId: 'user-42',
           errorName: 'MessageRejected',
           statusCode: 400,
@@ -186,7 +190,7 @@ describe('T-220 AC6 provider error paths', () => {
         expectClean(allLogText());
         const line = parsedLogs().find((l) => l.msg === 'SMTP send failed');
         expect(line).toMatchObject({
-          template: 'auth.welcome',
+          template: 'billing.lowCreditWarning',
           userId: 'user-42',
           code: 'EENVELOPE',
           statusCode: 550,
@@ -204,7 +208,7 @@ describe('T-220 AC6 worker processor', () => {
       queueName: 'email-low',
       attemptsMade,
       data: {
-        template: 'auth.welcome',
+        template: 'billing.lowCreditWarning',
         to: [LEAK_ADDRESS],
         cc: [],
         bcc: [],
@@ -234,7 +238,7 @@ describe('T-220 AC6 worker processor', () => {
     const failed = parsedLogs().find((l) => l.msg === 'Email send failed');
     expect(failed).toMatchObject({
       jobId: 'job-1',
-      template: 'auth.welcome',
+      template: 'billing.lowCreditWarning',
       userId: '507f1f77bcf86cd799439011',
       attempt: 1,
     });
@@ -245,7 +249,7 @@ describe('T-220 AC6 worker processor', () => {
     ]);
     expectClean(sentry);
     expect(Sentry.captureException).toHaveBeenCalledTimes(1);
-    expect(sentry).toContain('auth.welcome');
+    expect(sentry).toContain('billing.lowCreditWarning');
     expect(sentry).toContain('507f1f77bcf86cd799439011');
   });
 
@@ -259,7 +263,7 @@ describe('T-220 AC6 worker processor', () => {
     expectClean(sentry);
     expect(sentry).toContain('507f1f77bcf86cd799439011');
     expect(parsedLogs().find((l) => l.msg === 'Email sent')).toMatchObject({
-      template: 'auth.welcome',
+      template: 'billing.lowCreditWarning',
       userId: '507f1f77bcf86cd799439011',
     });
   });
@@ -308,7 +312,7 @@ describe('T-220 AC6 POST /send', () => {
     }
   }
   const body = {
-    template: 'auth.welcome',
+    template: 'billing.lowCreditWarning',
     to: LEAK_ADDRESS,
     cc: [`cc-${LEAK_ADDRESS}`],
     data: { name: LEAK_NAME, userId: 'user-42' },
@@ -320,7 +324,7 @@ describe('T-220 AC6 POST /send', () => {
     expect(res.status).toBe(202);
     expectClean(allLogText());
     expect(parsedLogs().find((l) => l.msg === 'Email sent via /send')).toMatchObject({
-      template: 'auth.welcome',
+      template: 'billing.lowCreditWarning',
       userId: 'user-42',
     });
   });
@@ -338,7 +342,7 @@ describe('T-220 AC6 POST /send', () => {
         expectClean(res.text);
         expectClean(allLogText());
         expect(parsedLogs().find((l) => l.msg === 'Email send failed via /send')).toMatchObject({
-          template: 'auth.welcome',
+          template: 'billing.lowCreditWarning',
           userId: 'user-42',
         });
         spy.mockRestore();

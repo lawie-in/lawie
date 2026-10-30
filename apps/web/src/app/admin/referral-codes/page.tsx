@@ -313,170 +313,172 @@ export default function ReferralCodesPage() {
               : 'No codes match this filter.'}
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-100 bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                <th className="px-4 py-3">Code</th>
-                <th className="px-4 py-3">Label</th>
-                <th className="px-4 py-3">Signups</th>
-                <th className="px-4 py-3 text-center">Cap</th>
-                <th className="px-4 py-3 text-center">Bonus</th>
-                <th className="px-4 py-3 text-center">Expires</th>
-                <th className="px-4 py-3 text-center">Status</th>
-                <th className="px-4 py-3">Created</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filtered.map((rc) => {
-                const pct =
-                  rc.maxUses && rc.maxUses > 0
-                    ? Math.min(100, (rc.uses / rc.maxUses) * 100)
-                    : Math.min(100, (rc.uses / Math.max(rc.uses, 10)) * 100);
-                return (
-                  <tr key={rc.code} className={rc.isActive ? '' : 'opacity-60'}>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-semibold text-slate-900">{rc.code}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleCopy(rc.code)}
-                          className="text-slate-400 hover:text-slate-600"
-                          title="Copy code"
-                        >
-                          {copied === rc.code ? (
-                            <CheckCircle2 size={13} className="text-green-500" />
-                          ) : (
-                            <Copy size={13} />
-                          )}
-                        </button>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      {editingCode === rc.code ? (
-                        <input
-                          type="text"
-                          value={editLabel}
-                          onChange={(e) => setEditLabel(e.target.value)}
-                          maxLength={100}
-                          autoFocus
-                          className="w-full rounded border border-amber-300 px-2 py-1 text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-400"
-                        />
-                      ) : (
-                        <span className="text-slate-600">{rc.label ?? '—'}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="h-1 w-20 overflow-hidden rounded-full bg-slate-100">
-                          <div
-                            className="h-full rounded-full bg-amber-400"
-                            style={{ width: `${pct}%` }}
-                          />
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  <th className="px-4 py-3">Code</th>
+                  <th className="px-4 py-3">Label</th>
+                  <th className="px-4 py-3">Signups</th>
+                  <th className="px-4 py-3 text-center">Cap</th>
+                  <th className="px-4 py-3 text-center">Bonus</th>
+                  <th className="px-4 py-3 text-center">Expires</th>
+                  <th className="px-4 py-3 text-center">Status</th>
+                  <th className="px-4 py-3">Created</th>
+                  <th className="px-4 py-3" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filtered.map((rc) => {
+                  const pct =
+                    rc.maxUses && rc.maxUses > 0
+                      ? Math.min(100, (rc.uses / rc.maxUses) * 100)
+                      : Math.min(100, (rc.uses / Math.max(rc.uses, 10)) * 100);
+                  return (
+                    <tr key={rc.code} className={rc.isActive ? '' : 'opacity-60'}>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-semibold text-slate-900">{rc.code}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(rc.code)}
+                            className="text-slate-400 hover:text-slate-600"
+                            title="Copy code"
+                          >
+                            {copied === rc.code ? (
+                              <CheckCircle2 size={13} className="text-green-500" />
+                            ) : (
+                              <Copy size={13} />
+                            )}
+                          </button>
                         </div>
-                        <span className="font-mono text-xs font-medium text-slate-800">
-                          {rc.uses}
+                      </td>
+                      <td className="px-4 py-3">
+                        {editingCode === rc.code ? (
+                          <input
+                            type="text"
+                            value={editLabel}
+                            onChange={(e) => setEditLabel(e.target.value)}
+                            maxLength={100}
+                            autoFocus
+                            className="w-full rounded border border-amber-300 px-2 py-1 text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                          />
+                        ) : (
+                          <span className="text-slate-600">{rc.label ?? '—'}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-1 w-20 overflow-hidden rounded-full bg-slate-100">
+                            <div
+                              className="h-full rounded-full bg-amber-400"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <span className="font-mono text-xs font-medium text-slate-800">
+                            {rc.uses}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-center text-slate-500">{rc.maxUses ?? '∞'}</td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                          {rc.bonusInk ?? 5} Ink
                         </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-center text-slate-500">{rc.maxUses ?? '∞'}</td>
-                    <td className="px-4 py-3 text-center">
-                      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
-                        {rc.bonusInk ?? 5} Ink
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center text-xs text-slate-400">
-                      {editingCode === rc.code ? (
-                        <input
-                          type="date"
-                          value={editExpiresAt}
-                          onChange={(e) => setEditExpiresAt(e.target.value)}
-                          className="rounded border border-amber-300 px-2 py-1 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-amber-400"
-                        />
-                      ) : rc.expiresAt ? (
-                        new Date(rc.expiresAt).toLocaleDateString('en-IN', {
+                      </td>
+                      <td className="px-4 py-3 text-center text-xs text-slate-400">
+                        {editingCode === rc.code ? (
+                          <input
+                            type="date"
+                            value={editExpiresAt}
+                            onChange={(e) => setEditExpiresAt(e.target.value)}
+                            className="rounded border border-amber-300 px-2 py-1 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                          />
+                        ) : rc.expiresAt ? (
+                          new Date(rc.expiresAt).toLocaleDateString('en-IN', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                          })
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {rc.isActive ? (
+                          <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">
+                            Active
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                            Disabled
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-400">
+                        {new Date(rc.createdAt).toLocaleDateString('en-IN', {
                           day: '2-digit',
                           month: 'short',
                           year: 'numeric',
-                        })
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {rc.isActive ? (
-                        <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">
-                          Active
-                        </span>
-                      ) : (
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
-                          Disabled
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-400">
-                      {new Date(rc.createdAt).toLocaleDateString('en-IN', {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {editingCode === rc.code ? (
-                        <div className="flex items-center justify-end gap-2">
-                          {editError && (
-                            <span className="text-[11px] text-red-500">{editError}</span>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => saveEdit(rc.code)}
-                            disabled={editSaving}
-                            className="flex items-center gap-1 rounded bg-slate-900 px-2 py-1 text-[11px] font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
-                          >
-                            {editSaving ? (
-                              <Loader2 size={11} className="animate-spin" />
-                            ) : (
-                              <Save size={11} />
+                        })}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {editingCode === rc.code ? (
+                          <div className="flex items-center justify-end gap-2">
+                            {editError && (
+                              <span className="text-[11px] text-red-500">{editError}</span>
                             )}
-                            Save
-                          </button>
-                          <button
-                            type="button"
-                            onClick={cancelEdit}
-                            disabled={editSaving}
-                            className="flex items-center gap-1 rounded border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-                          >
-                            <X size={11} />
-                            Cancel
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-end gap-3">
-                          <button
-                            type="button"
-                            onClick={() => startEdit(rc)}
-                            className="text-slate-400 hover:text-slate-700"
-                            title="Edit label or expiry"
-                          >
-                            <Pencil size={13} />
-                          </button>
-                          {rc.isActive && (
                             <button
                               type="button"
-                              onClick={() => handleDisable(rc.code)}
-                              className="text-xs font-medium text-red-500 hover:text-red-700"
+                              onClick={() => saveEdit(rc.code)}
+                              disabled={editSaving}
+                              className="flex items-center gap-1 rounded bg-slate-900 px-2 py-1 text-[11px] font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
                             >
-                              Disable
+                              {editSaving ? (
+                                <Loader2 size={11} className="animate-spin" />
+                              ) : (
+                                <Save size={11} />
+                              )}
+                              Save
                             </button>
-                          )}
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                            <button
+                              type="button"
+                              onClick={cancelEdit}
+                              disabled={editSaving}
+                              className="flex items-center gap-1 rounded border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                            >
+                              <X size={11} />
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-end gap-3">
+                            <button
+                              type="button"
+                              onClick={() => startEdit(rc)}
+                              className="text-slate-400 hover:text-slate-700"
+                              title="Edit label or expiry"
+                            >
+                              <Pencil size={13} />
+                            </button>
+                            {rc.isActive && (
+                              <button
+                                type="button"
+                                onClick={() => handleDisable(rc.code)}
+                                className="text-xs font-medium text-red-500 hover:text-red-700"
+                              >
+                                Disable
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

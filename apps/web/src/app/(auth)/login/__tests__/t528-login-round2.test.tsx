@@ -166,14 +166,12 @@ describe('T-528 round 2: drawn consent checkbox', () => {
     expect(box().checked).toBe(true);
   });
 
-  it('unticked: Google is blocked, the signed error shows, focus goes to the box, aria is set', async () => {
+  it('T-642 (AJ-642-M1): unticked, Google is not blocked: no consent error, the box is not marked invalid', async () => {
     await mount('mode=signup');
     await act(async () => void google().click());
     await flush();
-    expect(q('#consent-error')).not.toBeNull();
-    expect(document.activeElement).toBe(box());
-    expect(box().getAttribute('aria-invalid')).toBe('true');
-    expect(box().getAttribute('aria-describedby')).toBe('consent-error');
+    expect(q('#consent-error')).toBeNull();
+    expect(box().hasAttribute('aria-invalid')).toBe(false);
   });
 
   it('unticked: Create account is blocked with aria-invalid; ticking clears the error and the aria', async () => {

@@ -172,6 +172,39 @@ const CASES: Array<{ id: string; label: string; data: Record<string, unknown> }>
   },
   { id: 'billing.taxInvoice', label: 'tax invoice', data: INVOICE },
   { id: 'billing.creditNote', label: 'credit note', data: INVOICE },
+  // T-646: the payment-concern acknowledgement (with and without a name) and the support notice.
+  {
+    id: 'billing.concernReceived',
+    label: 'concern received',
+    data: {
+      name: NAME,
+      reference: 'PC-7K3M9QX2',
+      paymentUrl:
+        'https://app.lawie.in/dashboard/settings?tab=billing#payment-507f1f77bcf86cd799439011',
+    },
+  },
+  {
+    id: 'billing.concernReceived',
+    label: 'concern received, no name',
+    data: {
+      reference: 'PC-7K3M9QX2',
+      paymentUrl:
+        'https://app.lawie.in/dashboard/settings?tab=billing#payment-507f1f77bcf86cd799439011',
+    },
+  },
+  {
+    id: 'admin.paymentConcern',
+    label: 'payment concern notice',
+    data: {
+      reference: 'PC-7K3M9QX2',
+      concernId: '507f1f77bcf86cd799439012',
+      paymentId: '507f1f77bcf86cd799439011',
+      razorpayPaymentId: 'pay_SentinelAbc123',
+      reason: 'charged_no_ink',
+      maskedEmail: 'a***@example.com',
+      adminUrl: 'https://dashboard.razorpay.com/app/payments/pay_SentinelAbc123',
+    },
+  },
 ];
 
 type Out =

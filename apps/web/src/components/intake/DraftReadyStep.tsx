@@ -14,11 +14,11 @@
 import { Check } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-import type { DraftResult } from './briefTypes';
+import { shownSoftFindings, type DraftResult } from './briefTypes';
 import { finaliseDocument } from './draftActions';
 import { actions, folio, linkButton, page } from './nlUi';
 
-import { Button, Chip, ErrorState, InkChip, Spinner, formatInk } from '@/components/ui';
+import { Button, Chip, ErrorState, InkChip, Notice, Spinner, formatInk } from '@/components/ui';
 
 /**
  * T-136. Ajay's text (CLO, 7 Oct 2026, part 1, C5), word for word, in place of
@@ -68,6 +68,8 @@ export default function DraftReadyStep({
   // banner's last line; without it, a neutral note in the same slot. The text is the
   // service's; there is no copy of it in the web app.
   const disclaimer = result.disclaimer ?? null;
+  // T-690b: the confirmed brief's soft findings (signed text, as sent), each shown once.
+  const softFindings = shownSoftFindings(result.softFindings);
   // T-373 (ADR-025 D1): on a D1 pack the missing parts are read off the clauses the
   // renderer printed. The title is the service's own for that clause, else the clause's
   // blank labels. Fallback clauses are not shown (no design for them yet).
@@ -185,6 +187,10 @@ export default function DraftReadyStep({
           </h2>
           <Chip variant="ok">Included</Chip>
         </div>
+        {/* T-690b (Rajesh): the brief's soft findings, the first item in the checks panel. */}
+        {softFindings.map((f) => (
+          <Notice key={f.rule_id} variant="warn" text={f.text} className="mt-nl-3" />
+        ))}
         {factCheck && (
           <div
             role="note"

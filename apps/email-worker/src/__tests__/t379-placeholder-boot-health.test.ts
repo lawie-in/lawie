@@ -28,6 +28,7 @@ import {
   withEnv,
 } from './helpers/t220-capture';
 import {
+  CONCERN_SENTINEL_FIELDS,
   INVOICE_SENTINEL_FIELDS,
   SIGNUP_ATTEMPT_SENTINEL_FIELDS,
   renderReal,
@@ -65,7 +66,10 @@ jest.mock('../templates/auth/verifyEmail', () =>
   jest.requireActual('./helpers/t436-unfilled-footer').verifyEmailModule(() => mockUnfilledFooter),
 );
 const mockRender = jest.fn();
-jest.mock('../templates', () => ({ renderTemplate: (...a: unknown[]) => mockRender(...a) }));
+jest.mock('../templates', () => ({
+  renderTemplate: (...a: unknown[]) => mockRender(...a),
+  isTemplateRegistered: () => true,
+}));
 const mockProviderSend = jest.fn();
 jest.mock('../providers', () => ({ sendEmail: (...a: unknown[]) => mockProviderSend(...a) }));
 
@@ -155,6 +159,8 @@ describe('tripwire: every registered template vs TEMPLATE_FOOTERS', () => {
     url: 'https://app.lawie.in/x',
     // billing.taxInvoice / billing.creditNote (T-436 b/c) refuse to render without these.
     ...INVOICE_SENTINEL_FIELDS,
+    // T-646: billing.concernReceived / admin.paymentConcern refuse to render without these.
+    ...CONCERN_SENTINEL_FIELDS,
     // auth.signupAttempt (T-522) refuses to render without its two page links.
     ...SIGNUP_ATTEMPT_SENTINEL_FIELDS,
   };
@@ -281,11 +287,28 @@ describe('createProcessor', () => {
   it('live mode: auth.welcome with "[PIN]" in user data is sent (not refused)', async () => {
     const send = jest.fn(async () => ({ messageId: 'm' }));
     const j = job('auth.welcome');
-    j.data.data = { userId: USER_ID, name: '[PIN]' };
+    j.data.data = { userId: USER_ID };
+    // T-587: the name comes from auth at send time (prepare stubbed), not from the job.
+    const welcome = jest.fn(async () => ({
+      email: LEAK_ADDRESS,
+      name: '[PIN]',
+      loginUrl: 'https://lawie.in/login',
+    }));
     mockRender.mockResolvedValue({ subject: 's', html: '<p>[PIN]</p>', text: '[PIN]' });
-    await inEnv(LIVE, async ({ worker }) => {
-      await expect(worker.createProcessor(send)(j, 't')).resolves.toEqual({ messageId: 'm' });
+    await inEnv({ ...LIVE, GST_ADDRESS: '12 Example Marg, Fake Nagar' }, async ({ worker }) => {
+      await expect(
+        worker.createProcessor(
+          send,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          welcome,
+        )(j, 't'),
+      ).resolves.toEqual({ messageId: 'm' });
     });
+    expect(welcome).toHaveBeenCalledTimes(1);
     expect(send).toHaveBeenCalledTimes(1);
   });
 });

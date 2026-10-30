@@ -19,6 +19,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import {
+  COURT_UNAVAILABLE,
+  COURT_UNAVAILABLE_CODE,
+  FACT_QUESTION_CODES,
+  generationFailureCopy,
+} from '@/components/intake/generationFailure';
 import InkCostLine, { inkCostState } from '@/components/intake/InkCostLine';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -64,6 +70,13 @@ export interface PipelineStatusProps {
    * the card shows the signed text only.
    */
   generationError?: string;
+  /**
+   * T-637: the SSE error event's `code`. For a draft the server withheld to ask
+   * one question (FACT_QUESTION_CODES), the card shows `generationError` (the
+   * server's signed question) as its heading, with no other line and no
+   * "Try again", as OneFlow does (generationFailureCopy).
+   */
+  generationErrorCode?: string;
   /** Whether the failure is retryable — controls "Try again" button visibility */
   generationRetryable?: boolean;
   /**
@@ -222,7 +235,7 @@ function StepBreadcrumb({ state }: { state: PipelineState }) {
   return (
     <div className="flex flex-wrap items-center gap-1">
       {STEP_LABELS.map((label, i) => (
-        <span key={i} className="flex items-center gap-1">
+        <span key={i} className="flex flex-wrap items-center gap-1">
           <span
             style={{
               fontSize: '11px',
@@ -367,7 +380,7 @@ function VerifyingCard({ state }: { state: PipelineState }) {
         padding: '18px 20px',
       }}
     >
-      <div className="mb-3 flex items-center gap-3">
+      <div className="mb-3 flex flex-wrap items-center gap-3 gap-y-1">
         <div
           className="flex-shrink-0"
           style={{
@@ -382,7 +395,7 @@ function VerifyingCard({ state }: { state: PipelineState }) {
         >
           <VerifyingIcon />
         </div>
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <div style={{ fontSize: '14px', fontWeight: 500, marginBottom: 2 }}>
             Checking your inputs…
           </div>
@@ -532,7 +545,7 @@ function DraftingCard({ templateName, state }: { templateName?: string; state: P
         padding: '18px 20px',
       }}
     >
-      <div className="mb-3 flex items-center gap-3">
+      <div className="mb-3 flex flex-wrap items-center gap-3 gap-y-1">
         <div
           className="flex-shrink-0"
           style={{
@@ -547,7 +560,7 @@ function DraftingCard({ templateName, state }: { templateName?: string; state: P
         >
           <DraftingIcon />
         </div>
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <div style={{ fontSize: '14px', fontWeight: 500, marginBottom: 2 }}>
             Writing your {templateName ?? 'document'}…
           </div>
@@ -588,7 +601,7 @@ function ReadyCard({
         padding: '18px 20px',
       }}
     >
-      <div className="mb-3 flex items-center gap-3">
+      <div className="mb-3 flex flex-wrap items-center gap-3 gap-y-1">
         <div
           className="flex-shrink-0"
           style={{
@@ -603,7 +616,7 @@ function ReadyCard({
         >
           <CheckIcon />
         </div>
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <div style={{ fontSize: '14px', fontWeight: 500, color: '#04342C', marginBottom: 2 }}>
             Draft ready
           </div>
@@ -696,18 +709,37 @@ function HardBlockCard({
 }
 
 function GenerationFailedCard({
+  generationError,
+  generationErrorCode,
   generationRetryable,
   generationFailure = 'stream',
   onRetry,
   onEditForm,
   cost,
 }: {
+  generationError?: string;
+  generationErrorCode?: string;
   generationRetryable?: boolean;
   generationFailure?: GenerationFailure;
   onRetry?: () => void;
   onEditForm?: () => void;
   cost: InkCostProps;
 }) {
+  // T-637 (T-611): a withheld draft is not a failure: the server's signed
+  // question is the heading, alone, and there is no retry (the advocate edits
+  // the form). Every other failure keeps its signed lines below.
+  const question =
+    generationFailure === 'stream' &&
+    generationErrorCode !== undefined &&
+    FACT_QUESTION_CODES.has(generationErrorCode) &&
+    generationError
+      ? generationFailureCopy({
+          reason: generationError,
+          retryable: false,
+          source: 'error_event',
+          code: generationErrorCode,
+        }).headline
+      : null;
   const notStarted = generationFailure === 'not_started';
   const costState = inkCostState(cost.inkCost, cost.inkCostLoading ?? false);
   // T-565 W8 (Ajay): the unsigned unknown-cost notice and its "Check the cost again" link are
@@ -721,18 +753,28 @@ function GenerationFailedCard({
   const showCostReason = costState === 'unknown' && !notStarted;
   // T-565 W1/W3/W6/W7 (Ajay): the signed lines for each kind of failure.
   const lines =
-    generationFailure === 'not_started'
-      ? [DRAFT_COULD_NOT_START]
-      : generationFailure === 'request_failed'
-        ? [SOMETHING_DID_NOT_WORK]
-        : generationFailure === 'in_progress'
-          ? [CHECK_DOCUMENTS_LIST]
-          : generationFailure === 'plan_required'
-            ? [NOT_ON_CURRENT_PLAN]
-            : [DRAFT_DID_NOT_FINISH, CHECK_DOCUMENTS_LIST];
+    question !== null
+      ? [question]
+      : generationFailure === 'not_started'
+        ? [DRAFT_COULD_NOT_START]
+        : generationFailure === 'request_failed'
+          ? // T-686: a picked court id that did not resolve (503); Retry stays.
+            [
+              generationErrorCode === COURT_UNAVAILABLE_CODE
+                ? COURT_UNAVAILABLE
+                : SOMETHING_DID_NOT_WORK,
+            ]
+          : generationFailure === 'in_progress'
+            ? [CHECK_DOCUMENTS_LIST]
+            : generationFailure === 'plan_required'
+              ? [NOT_ON_CURRENT_PLAN]
+              : [DRAFT_DID_NOT_FINISH, CHECK_DOCUMENTS_LIST];
   const retryLabel = generationFailure === 'request_failed' ? RETRY_LABEL : 'Try again';
   const canRetry =
-    generationRetryable !== false && !!onRetry && !NO_RETRY_FAILURES.has(generationFailure);
+    question === null &&
+    generationRetryable !== false &&
+    !!onRetry &&
+    !NO_RETRY_FAILURES.has(generationFailure);
   return (
     <div
       style={{
@@ -848,6 +890,8 @@ export default function PipelineStatus({
   onProceedAnyway,
   onEditForm,
   onOpenEditor,
+  generationError,
+  generationErrorCode,
   generationRetryable,
   generationFailure,
   onRetry,
@@ -915,6 +959,8 @@ export default function PipelineStatus({
 
       {state === 'generation_failed' && (
         <GenerationFailedCard
+          generationError={generationError}
+          generationErrorCode={generationErrorCode}
           generationRetryable={generationRetryable}
           generationFailure={generationFailure}
           onRetry={onRetry}

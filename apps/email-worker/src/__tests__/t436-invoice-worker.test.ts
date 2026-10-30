@@ -497,7 +497,7 @@ describe('transient failures retry (BillingViewError, not Unrecoverable)', () =>
 });
 
 describe('other templates are untouched', () => {
-  it('auth.welcome: no billing call, the job recipients are used', async () => {
+  it('billing.lowCreditWarning: no billing call, the job recipients are used', async () => {
     const send = okSend();
     await createProcessor(send)(
       {
@@ -506,7 +506,7 @@ describe('other templates are untouched', () => {
         attemptsMade: 0,
         opts: { attempts: 5 },
         data: {
-          template: 'auth.welcome',
+          template: 'billing.lowCreditWarning',
           to: ['a@example.com'],
           cc: [],
           bcc: [],

@@ -85,18 +85,45 @@ interface Rendered {
   affidavit: string;
 }
 
-async function render(formData: Record<string, unknown>): Promise<Rendered> {
+/**
+ * T-689c: the annexure with this heading, from its label to the next annexure's label
+ * (or the end); '' when it is not attached. Found by heading, not by letter, since the
+ * Synopsis (Annexure B when attached) moves the letters of the rest.
+ */
+function sectionOf(html: string, heading: string): string {
+  const m = new RegExp(`class="annexure-label">ANNEXURE [A-Z]</div>\\s*<h2>${heading}</h2>`).exec(
+    html,
+  );
+  if (!m) return '';
+  const next = html.indexOf('class="annexure-label"', m.index + 1);
+  return html.slice(m.index, next === -1 ? undefined : next);
+}
+
+/**
+ * The pack id and court type default to what the route passes: the form's template_id
+ * and court_type. `pack` overrides them (T-689c).
+ */
+async function render(
+  formData: Record<string, unknown>,
+  pack: { rulePackId?: string; courtType?: string } = {},
+): Promise<Rendered> {
   mockRender.mockClear();
-  await buildAnnexuresPack({ formData, bodyParaCount: 5, advocateName: 'Adv. Test' });
+  await buildAnnexuresPack({
+    formData,
+    bodyParaCount: 5,
+    advocateName: 'Adv. Test',
+    rulePackId: typeof formData.template_id === 'string' ? formData.template_id : undefined,
+    courtType: typeof formData.court_type === 'string' ? formData.court_type : undefined,
+    ...pack,
+  });
   const html = String(mockRender.mock.calls[0][0]);
-  const at = (l: string) => html.indexOf(`ANNEXURE ${l}`);
   return {
     html,
-    memo: html.slice(at('A'), at('B')),
-    synopsis: html.slice(at('B'), at('C')),
-    index: html.slice(at('D'), at('E')),
-    vakalatnama: html.slice(at('E'), at('F')),
-    affidavit: html.slice(at('G')),
+    memo: sectionOf(html, 'Memo of Parties'),
+    synopsis: sectionOf(html, 'Synopsis'),
+    index: sectionOf(html, 'Index of Documents Annexed'),
+    vakalatnama: sectionOf(html, 'Vakalatnama'),
+    affidavit: sectionOf(html, 'Affidavit'),
   };
 }
 
@@ -106,6 +133,7 @@ async function renderPack(
   raw: Record<string, unknown>,
   base: Record<string, unknown> = {},
   courtId = 'allahabad_hc',
+  pack: { rulePackId?: string; courtType?: string } = {},
 ): Promise<Rendered> {
   const mapped = mapPartyFields(id, raw);
   expect(mapped.missing).toEqual([]);
@@ -113,7 +141,7 @@ async function renderPack(
     { template_id: id, court_id: courtId, court_type: 'high_court', ...base },
     mapped,
   );
-  return render(formData);
+  return render(formData, pack);
 }
 
 /** The two Memo rows as [label, cell text]. */
@@ -221,98 +249,84 @@ describe('T-424 B: Memo of Parties, both packs on both sides', () => {
   });
 });
 
-describe('T-424 B: affidavit, both packs on both sides', () => {
+// T-700 (AJ-700 (3), AJ-700a (1)): a counter or rejoinder affidavit is itself an affidavit, so
+// the pack attaches NO separate affidavit and NO Vakalatnama annexure. It is the Memo of Parties
+// (the sided labels, above) and the Index; Vakalatnama is an Index row only; no court fee row.
+describe('T-424 B / T-700: no separate affidavit, both packs on both sides', () => {
   const CASES = PACKS.flatMap(({ id, rowSide }) => [
     { id, client: rowSide, raw: rawBrief() },
     { id, client: other(rowSide), raw: rawBrief({ client_role: other(rowSide) }) },
   ]);
-  const LABEL: Record<Side, string> = { petitioner: 'Petitioner', respondent: 'Respondent' };
 
   describe.each(CASES)('$id, client $client', ({ id, client, raw }) => {
-    it("the deponent is the client with the client's details", async () => {
-      const { affidavit } = await renderPack(id, raw);
-      const p = PERSON[client];
-      expect(affidavit).toContain(`AFFIDAVIT OF ${p.name.toUpperCase()}`);
-      expect(affidavit).toContain(`I, <strong>${p.name}</strong>`);
-      expect(affidavit).toContain(`aged about ${p.age} years`);
-      expect(affidavit).toContain(p.father);
-      expect(affidavit).toContain(p.address);
-      expect(affidavit).toContain(`<p>${p.name}</p>`);
-      const o = PERSON[other(client)];
-      expect(affidavit).not.toContain(o.name);
-      expect(affidavit).not.toContain(o.address);
-      expect(affidavit).not.toContain(o.father);
+    it('attaches no Affidavit annexure and prints no affidavit text', async () => {
+      const r = await renderPack(id, { ...raw, ...STALE });
+      expect(r.affidavit).toBe('');
+      expect(r.html).not.toContain('<h2>Affidavit</h2>');
+      expect(r.html).not.toContain('AFFIDAVIT OF');
+      expect(r.html).not.toContain('That I am the above-named');
+      expect(r.html).not.toContain('DEPONENT');
+      expect(r.html).not.toContain('BEFORE ME');
     });
 
-    it(`the designation is "the above-named ${LABEL[client]}" with a single "the"`, async () => {
-      const { affidavit } = await renderPack(id, raw);
-      expect(affidavit).toContain(
-        `1. That I am the above-named ${LABEL[client]} in the accompanying matter`,
-      );
-      expect(affidavit).not.toMatch(/the the/i);
-      expect(affidavit).not.toMatch(/applicant/i);
-      expect(affidavit).not.toContain(`above-named ${LABEL[other(client)]}`);
+    it('attaches no Vakalatnama annexure; Vakalatnama is an Index row only', async () => {
+      const r = await renderPack(id, { ...raw, ...STALE });
+      expect(r.vakalatnama).toBe('');
+      expect(r.html).not.toContain('<h2>Vakalatnama</h2>');
+      expect(r.index).toContain('<td>Vakalatnama</td><td>___________</td>');
+      expect(r.index).not.toContain('Annexure D');
     });
 
-    it('the verification uses the client name, not the counterpart or a stale applicant', async () => {
-      const { affidavit } = await renderPack(id, { ...raw, ...STALE });
-      const verification = affidavit.slice(
-        affidavit.indexOf('5. That this affidavit'),
-        affidavit.indexOf('DEPONENT'),
-      );
-      expect(verification).toContain(PERSON[client].name);
-      expect(verification).not.toContain(PERSON[other(client)].name);
-      expect(verification).not.toMatch(STALE_RE);
-      expect(verification).not.toMatch(/\{deponent_name\}|\{designation\}/);
-      expect(affidavit).not.toMatch(STALE_RE);
+    it('the Index has no "Affidavit of <client>" row, no court fee row, no stale values', async () => {
+      const r = await renderPack(id, { ...raw, ...STALE });
+      expect(r.index).not.toContain('Affidavit of');
+      expect(r.index).not.toMatch(/court fee/i);
+      expect(r.index).not.toContain(PERSON[other(client)].name);
+      expect(r.index).not.toMatch(STALE_RE);
+      expect(r.html).not.toMatch(/Court Fee Paid Statement/);
     });
 
-    it('an explicit deponent_designation wins', async () => {
-      const { affidavit } = await renderPack(id, raw, {
-        deponent_designation: 'the authorised signatory of the above-named Company',
-      });
-      expect(affidavit).toContain(
-        '1. That I am the authorised signatory of the above-named Company in the accompanying matter',
-      );
-      expect(affidavit).not.toContain(`above-named ${LABEL[client]}`);
-      expect(affidavit).not.toMatch(/the the/i);
+    it('is Memo of Parties (A) and Index (B) only, no Synopsis, even before a High Court', async () => {
+      const r = await renderPack(id, { ...raw, ...STALE });
+      expect(r.synopsis).toBe('');
+      expect(r.html).not.toContain('>Synopsis</h2>');
+      expect(r.html).not.toContain('As required by High Court Practice');
+      expect(r.html).toMatch(/ANNEXURE A<\/div>\s*<h2>Memo of Parties<\/h2>/);
+      expect(r.html).toMatch(/ANNEXURE B<\/div>\s*<h2>Index of Documents Annexed<\/h2>/);
+      expect(r.html).not.toContain('ANNEXURE C');
+    });
+
+    it('rule 0: no FIR, arrest or Applicant text anywhere', async () => {
+      const r = await renderPack(id, { ...raw, ...STALE });
+      expect(r.html).not.toMatch(/\bFIR\b|arrest|applicant/i);
     });
   });
-});
 
-describe('T-424 B: vakalatnama, index and synopsis', () => {
-  describe.each(
-    PACKS.flatMap(({ id, rowSide }) => [
-      { id, client: rowSide, raw: rawBrief() },
-      { id, client: other(rowSide), raw: rawBrief({ client_role: other(rowSide) }) },
-    ]),
-  )('$id, client $client', ({ id, client, raw }) => {
-    it('the vakalatnama names the client and the client address', async () => {
-      const { vakalatnama } = await renderPack(id, { ...raw, ...STALE });
-      expect(vakalatnama).toContain(`<strong>${PERSON[client].name}</strong>`);
-      expect(vakalatnama).toContain(PERSON[client].address);
-      expect(vakalatnama).not.toContain(PERSON[other(client)].name);
-      expect(vakalatnama).not.toMatch(STALE_RE);
-    });
+  it('Nature of matter is the first line of the Index', async () => {
+    const r = await renderPack('counter_affidavit', rawBrief());
+    expect(r.index).toMatch(
+      /<h2>Index of Documents Annexed<\/h2>\s*<br>\s*<p><strong>Nature of matter:<\/strong> [^<]+<\/p>\s*<table>/,
+    );
+  });
 
-    it('the index lists "Affidavit of <client>"', async () => {
-      const { index } = await renderPack(id, { ...raw, ...STALE });
-      expect(index).toContain(`Affidavit of ${PERSON[client].name}`);
-      expect(index).not.toContain(PERSON[other(client)].name);
-      expect(index).not.toMatch(STALE_RE);
-    });
-
-    it('the synopsis party bullet is "Petitioner: <petitioner>", never "Applicant/Petitioner"', async () => {
-      const { synopsis } = await renderPack(id, { ...raw, ...STALE });
-      expect(synopsis).toContain(`<li>Petitioner: ${NITA.name}</li>`);
-      expect(synopsis).not.toContain('Applicant/Petitioner');
-      expect(synopsis).not.toMatch(STALE_RE);
-    });
+  it('the rejoinder Memo roles stay Petitioner / Respondent on a trial court too', async () => {
+    const r = await renderPack(
+      'rejoinder_affidavit',
+      rawBrief(),
+      { court_type: undefined },
+      'bihar_district',
+      {
+        rulePackId: 'rejoinder_affidavit',
+        courtType: 'district_court',
+      },
+    );
+    expect(memoRows(r.memo).map((x) => x.label)).toEqual(['Petitioner', 'Respondent']);
+    expect(r.affidavit).toBe('');
   });
 });
 
 describe('T-424 B: other packs keep their wording (single "the")', () => {
-  it('bail_regular still says "the above-named Applicant/Petitioner"', async () => {
+  it('bail_regular still says "the above-named Applicant/Petitioner" (criminal set unchanged)', async () => {
     const { affidavit, memo, synopsis } = await render({
       template_id: 'bail_regular',
       court_id: 'allahabad_hc',
@@ -332,31 +346,45 @@ describe('T-424 B: other packs keep their wording (single "the")', () => {
     expect(memo).toContain('Age: 30 years');
   });
 
-  it.each(['plaint_recovery', 'written_statement', 'vakalatnama', 'fir_quashing'])(
-    '%s: single "the" in the designation line',
+  it('fir_quashing (criminal): single "the" in the designation line', async () => {
+    const { affidavit } = await render({
+      template_id: 'fir_quashing',
+      court_id: 'delhi_district',
+      court_type: 'district_court',
+      applicant_name: 'Some Person',
+      respondent_name: 'Other Person',
+    });
+    expect(affidavit).toContain('1. That I am the above-named Applicant/Petitioner in ');
+    expect(affidavit).not.toMatch(/the the/i);
+  });
+
+  it.each(['plaint_recovery', 'written_statement', 'vakalatnama'])(
+    'T-700: %s is a civil pack: no affidavit page and no Applicant/Petitioner designation',
     async (templateId) => {
-      const { affidavit } = await render({
+      const { affidavit, html } = await render({
         template_id: templateId,
         court_id: 'delhi_district',
         court_type: 'district_court',
         applicant_name: 'Some Person',
         respondent_name: 'Other Person',
       });
-      expect(affidavit).toContain('1. That I am the above-named Applicant/Petitioner in ');
-      expect(affidavit).not.toMatch(/the the/i);
+      expect(affidavit).toBe('');
+      expect(html).not.toContain('That I am the above-named Applicant/Petitioner');
+      expect(html).not.toContain('<h2>Affidavit</h2>');
     },
   );
 
-  it('counter_affidavit without client_side is the old non-sided render', async () => {
-    const { affidavit, memo } = await render({
+  it('counter_affidavit without client_side: Memo from the court rule, no affidavit (T-700)', async () => {
+    const { affidavit, memo, vakalatnama } = await render({
       template_id: 'counter_affidavit',
       court_id: 'allahabad_hc',
       court_type: 'high_court',
       applicant_name: 'Plain Applicant',
       respondent_name: 'Plain Respondent',
     });
-    expect(affidavit).toContain('1. That I am the above-named Applicant/Petitioner in ');
-    expect(affidavit).toContain('<strong>Plain Applicant</strong>');
+    expect(affidavit).toBe('');
+    expect(vakalatnama).toBe('');
+    expect(memo).toContain('<strong>Plain Applicant</strong>');
     expect(memo).toContain('Plain Respondent');
   });
 });

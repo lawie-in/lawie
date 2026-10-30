@@ -16,9 +16,9 @@ describe('email-worker template registry', () => {
     expect(s).toMatch(/Adv\. Anand/);
   });
 
-  it('auth.welcome subject falls back to "Advocate" when name missing', () => {
-    const s = authWelcomeTemplate.subject({});
-    expect(s).toMatch(/Advocate/);
+  it('auth.welcome subject uses the no-name form (never "Advocate") when name missing', () => {
+    expect(authWelcomeTemplate.subject({})).toBe('Welcome to Lawie');
+    expect(authWelcomeTemplate.subject({})).not.toMatch(/Advocate/);
   });
 
   it('auth.welcome Body() returns a React element', () => {

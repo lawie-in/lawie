@@ -3,11 +3,19 @@
  *
  * Three buckets per user (User collection):
  *   • topupCredits        — purchased one-off, permanent until spent
- *   • earnedCredits       — login/rating bonuses, permanent
+ *   • earnedCredits       — legacy: signup/login/rating accrual stopped in T-652 (AJ-646-M9b/c);
+ *                           existing balances kept and hidden. T-653 (AJ-646-M9c): spendCredits
+ *                           and grantCredits refuse this bucket (EarnedCreditsSpendDisabledError)
+ *                           unless env EARNED_CREDITS_SPEND_ENABLED is exactly 'true'. It is off:
+ *                           no bonus scheme exists, and any future scheme's offer and terms go
+ *                           to Ajay first.
  *   • subscriptionCredits — monthly/yearly plan allocation, lapses on cycle
  *
  * Spend order (most-perishable last so users don't lose value):
  *   topupCredits → earnedCredits → subscriptionCredits
+ * (earnedCredits only when the flag above is on.) spendCredits is a legacy
+ * path with no callers; drafts are paid in Ink (holdInk / settleInk
+ * (releaseInk on failure)).
  *
  * Every grant + spend writes a CreditLedger row for audit + founder dashboard.
  *
@@ -20,9 +28,10 @@
  */
 import { settleYearlyDrip } from '@lawie/shared';
 import type { LedgerFact } from '@lawie/shared';
-import mongoose, { Types } from 'mongoose';
+import mongoose from 'mongoose';
 
 import { DOC_TYPE_ALIASES, NON_TEMPLATE_PRICES, TEMPLATE_PRICES } from '../config/catalogue';
+import { env } from '../config/env';
 import { CreditBucket, CreditLedger, CreditSource } from '../models/CreditLedger.model';
 import { Generation } from '../models/Generation.model';
 import { IInkHold, User } from '../models/User.model';
@@ -451,7 +460,7 @@ export interface CreditBalance {
   topupCredits: number;
   earnedCredits: number;
   subscriptionCredits: number;
-  total: number;
+  // T-667: no `total` (it summed earnedCredits in). The balance is `totalInk`.
   // Ink buckets (SCRUM-101) — human-readable Ink values (stored units ÷ 2)
   inkSub: number;
   inkAnnualCarry: number;
@@ -494,7 +503,6 @@ export async function getCreditBalance(userId: string): Promise<CreditBalance> {
     topupCredits: 0,
     earnedCredits: 0,
     subscriptionCredits: 0,
-    total: 0,
     inkSub: 0,
     inkAnnualCarry: 0,
     inkTopup: 0,
@@ -522,7 +530,6 @@ export async function getCreditBalance(userId: string): Promise<CreditBalance> {
     topupCredits: topup,
     earnedCredits: earned,
     subscriptionCredits: sub,
-    total: topup + earned + sub,
     inkSub: Math.floor(inkSubUnits / 2),
     inkAnnualCarry: Math.floor(inkCarryUnits / 2),
     inkTopup: Math.floor(inkTopupUnits / 2),
@@ -531,6 +538,37 @@ export async function getCreditBalance(userId: string): Promise<CreditBalance> {
     planTier: normalizePlanTier(u?.planTier),
     billingCycle: (u?.billingCycle as 'none' | 'monthly' | 'yearly') ?? 'none',
   };
+}
+
+// ── Amount validation ─────────────────────────────────────────────────────────
+
+/**
+ * T-667: a credit spend or grant was asked for an amount that is not a finite
+ * number > 0 (NaN, ±Infinity, zero, negative, or not a number at all). Thrown
+ * before any read or write. The message names the operation and, for a finite
+ * amount only, echoes it; it never carries a user id.
+ */
+export class InvalidCreditAmountError extends Error {
+  readonly code = 'invalid_credit_amount';
+  readonly operation: 'spendCredits' | 'grantCredits';
+  constructor(operation: 'spendCredits' | 'grantCredits', amount: unknown) {
+    super(
+      typeof amount === 'number' && Number.isFinite(amount)
+        ? `${operation}: amount must be > 0 (got ${amount})`
+        : `${operation}: amount must be a finite number`,
+    );
+    this.name = 'InvalidCreditAmountError';
+    this.operation = operation;
+  }
+}
+
+function assertValidCreditAmount(
+  operation: 'spendCredits' | 'grantCredits',
+  amount: unknown,
+): void {
+  if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) {
+    throw new InvalidCreditAmountError(operation, amount);
+  }
 }
 
 // ── Grants ──────────────────────────────────────────────────────────────────
@@ -545,7 +583,12 @@ export async function grantCredits(input: {
   metadata?: Record<string, unknown>;
 }): Promise<number> {
   const { userId, bucket, amount, source, reference, templateId, metadata } = input;
-  if (amount <= 0) throw new Error(`grantCredits: amount must be > 0 (got ${amount})`);
+  // T-667: refuse NaN / Infinity / <= 0 before any check, read or write.
+  assertValidCreditAmount('grantCredits', amount);
+  // T-653: defence in depth — nothing may add to earnedCredits while the flag is off.
+  if (bucket === 'earnedCredits' && !isEarnedSpendEnabled()) {
+    throw new EarnedCreditsSpendDisabledError();
+  }
   if (!mongoose.Types.ObjectId.isValid(userId)) {
     throw new Error(`grantCredits: invalid userId "${userId}"`);
   }
@@ -592,12 +635,43 @@ export class InsufficientCreditsError extends Error {
 }
 
 /**
+ * T-653 (Ajay AJ-646-M9c): the legacy earnedCredits bucket may be spent or
+ * granted only when env EARNED_CREDITS_SPEND_ENABLED is exactly 'true'. Read at
+ * call time, not at import, so tests can toggle it.
+ */
+export function isEarnedSpendEnabled(): boolean {
+  return env.EARNED_CREDITS_SPEND_ENABLED === true;
+}
+
+/** T-653: a spend or grant would touch earnedCredits while the flag is off. */
+export class EarnedCreditsSpendDisabledError extends Error {
+  readonly code = 'earned_credits_spend_disabled';
+  constructor() {
+    super('The earnedCredits bucket cannot be spent: no signed bonus scheme is active.');
+    this.name = 'EarnedCreditsSpendDisabledError';
+  }
+}
+
+/**
  * Spend N credits in priority order: topup → earned → subscription.
- * Writes one CreditLedger row per bucket touched. Atomic per-bucket via $inc
- * with a balance guard.
+ * Legacy path with no callers (drafts are paid in Ink via holdInk / settleInk
+ * (releaseInk on failure)).
  *
- * Throws InsufficientCreditsError if the total available across all 3 buckets
- * is less than the cost. Re-throws on any DB error.
+ * T-653: earnedCredits is unspendable unless env EARNED_CREDITS_SPEND_ENABLED
+ * is on. It is off: no bonus scheme exists, and any future scheme's offer and
+ * terms go to Ajay first. The whole plan is computed before any write; with
+ * the flag off, the order of checks is:
+ *   1. topup + earned + sub < amount → InsufficientCreditsError, with
+ *      `available` = topup + sub (earned is never reported).
+ *   2. the plan (same order) would take anything from earnedCredits →
+ *      EarnedCreditsSpendDisabledError. Nothing is debited.
+ * With the flag on, behaviour is as before (check 1 reports the full total).
+ *
+ * Each bucket debit is a guarded update ({[bucket]: {$gte: take}}). If one
+ * matches nothing (a concurrent spend drained it), the debits already made in
+ * this call are re-credited (best effort) and InsufficientCreditsError is
+ * thrown. Ledger rows are written only after every debit has landed, one per
+ * bucket touched. Re-throws on any DB error (after the same best-effort undo).
  */
 export async function spendCredits(input: {
   userId: string;
@@ -606,36 +680,81 @@ export async function spendCredits(input: {
   reference?: string;
 }): Promise<{ spent: Array<{ bucket: CreditBucket; amount: number }>; totalSpent: number }> {
   const { userId, amount, templateId, reference } = input;
-  if (amount <= 0) throw new Error(`spendCredits: amount must be > 0 (got ${amount})`);
+  // T-667: refuse NaN / Infinity / <= 0 before the balance read or any write.
+  assertValidCreditAmount('spendCredits', amount);
 
+  const earnedAllowed = isEarnedSpendEnabled();
   const balance = await getCreditBalance(userId);
-  if (balance.total < amount) {
-    throw new InsufficientCreditsError(amount, balance.total);
+  // T-667: the balance has no `total`; the legacy all-bucket sum is local here.
+  const allBuckets = balance.topupCredits + balance.earnedCredits + balance.subscriptionCredits;
+  const spendable = earnedAllowed ? allBuckets : balance.topupCredits + balance.subscriptionCredits;
+  if (allBuckets < amount) {
+    throw new InsufficientCreditsError(amount, spendable);
   }
 
-  const userObjectId = new mongoose.Types.ObjectId(userId);
-  let remaining = amount;
-  const spent: Array<{ bucket: CreditBucket; amount: number }> = [];
-
-  // Drain in priority order
+  // Plan the whole spend before any write, in priority order.
   const order: Array<{ bucket: CreditBucket; available: number }> = [
     { bucket: 'topupCredits', available: balance.topupCredits },
     { bucket: 'earnedCredits', available: balance.earnedCredits },
     { bucket: 'subscriptionCredits', available: balance.subscriptionCredits },
   ];
-
+  const plan: Array<{ bucket: CreditBucket; amount: number }> = [];
+  let remaining = amount;
   for (const { bucket, available } of order) {
     if (remaining <= 0) break;
     if (available <= 0) continue;
     const take = Math.min(available, remaining);
+    plan.push({ bucket, amount: take });
+    remaining -= take;
+  }
+  if (!earnedAllowed && plan.some((p) => p.bucket === 'earnedCredits')) {
+    throw new EarnedCreditsSpendDisabledError();
+  }
 
-    const after = await User.findByIdAndUpdate(
-      userObjectId,
-      { $inc: { [bucket]: -take } },
-      { new: true },
-    ).lean();
-    const balanceAfter = (after?.[bucket] as number | undefined) ?? 0;
+  const userObjectId = new mongoose.Types.ObjectId(userId);
+  const landed: Array<{ bucket: CreditBucket; amount: number; balanceAfter: number }> = [];
+  const undoLanded = async (): Promise<void> => {
+    for (const { bucket, amount: take } of landed) {
+      try {
+        await User.findByIdAndUpdate(userObjectId, { $inc: { [bucket]: take } });
+      } catch (err) {
+        // The error class only, never ids, amounts or the driver's message.
+        console.error(
+          '[drafting] spendCredits undo failed:',
+          err instanceof Error ? err.name : 'unknown',
+        );
+      }
+    }
+  };
 
+  for (const { bucket, amount: take } of plan) {
+    let after;
+    try {
+      after = await User.findOneAndUpdate(
+        { _id: userObjectId, [bucket]: { $gte: take } },
+        { $inc: { [bucket]: -take } },
+        { new: true },
+      ).lean();
+    } catch (err) {
+      await undoLanded();
+      throw err;
+    }
+    if (!after) {
+      // A concurrent spend drained this bucket: undo this call's debits.
+      await undoLanded();
+      const now = await User.findById(userObjectId)
+        .lean()
+        .catch(() => null);
+      const nowSpendable =
+        (now?.topupCredits ?? 0) +
+        (now?.subscriptionCredits ?? 0) +
+        (earnedAllowed ? (now?.earnedCredits ?? 0) : 0);
+      throw new InsufficientCreditsError(amount, nowSpendable);
+    }
+    landed.push({ bucket, amount: take, balanceAfter: (after[bucket] as number | undefined) ?? 0 });
+  }
+
+  for (const { bucket, amount: take, balanceAfter } of landed) {
     await CreditLedger.create({
       userId: userObjectId,
       source: 'draft_spent',
@@ -645,12 +764,9 @@ export async function spendCredits(input: {
       reference,
       templateId,
     });
-
-    spent.push({ bucket, amount: take });
-    remaining -= take;
   }
 
-  return { spent, totalSpent: amount };
+  return { spent: plan, totalSpent: amount };
 }
 
 // ── Ink spend (new ink system — SCRUM-101) ────────────────────────────────
@@ -900,8 +1016,14 @@ export async function holdInk(input: {
    * `quotedUnits`. Absent → the hold is written exactly as before.
    */
   quoted?: boolean;
+  /**
+   * T-705: the inkledger reason the settle of this hold writes ('regenerate'
+   * for a paid revision). Stored on the hold so a sweep settle writes the
+   * same reason. Absent → the hold is written exactly as before ('generate').
+   */
+  reason?: 'regenerate';
 }): Promise<HoldInkResult> {
-  const { userId, costCredits, runId, runSequence, quoted } = input;
+  const { userId, costCredits, runId, runSequence, quoted, reason } = input;
   // T-147e: a golden-set run is never held or charged.
   if (isFixtureUser(userId)) return { ok: true, fixture: true };
   if (!mongoose.Types.ObjectId.isValid(userId)) return { ok: false, reason: 'user_not_found' };
@@ -960,6 +1082,7 @@ export async function holdInk(input: {
                   unit: 'ink2',
                   expiresAt: { $literal: expiresAt },
                   ...(quoted === true ? { quotedUnits: { $literal: costUnits } } : {}),
+                  ...(reason === 'regenerate' ? { reason: { $literal: reason } } : {}),
                 },
               ],
             ],
@@ -985,6 +1108,20 @@ export async function holdInk(input: {
     return { ok: false, reason: 'duplicate' };
   }
   return { ok: false, reason: 'insufficient_ink' };
+}
+
+/**
+ * T-705: does this user have an open hold on any attempt of this run? A hold
+ * means an attempt is in flight (a revision then answers 409 run_in_progress).
+ * Read only. A fixture user never has holds.
+ */
+export async function hasOpenHoldForRun(userId: string, runId: string): Promise<boolean> {
+  if (isFixtureUser(userId) || !mongoose.Types.ObjectId.isValid(userId)) return false;
+  const found = await inkUsers().findOne(
+    { _id: new mongoose.Types.ObjectId(userId), inkHolds: { $elemMatch: { runId } } },
+    { projection: { _id: 1 } },
+  );
+  return found !== null;
 }
 
 /**
@@ -1134,7 +1271,8 @@ export async function releaseInk(
  *      (internal ids and units only) and those rows are lost; the Ink stays
  *      kept (`settled: true, reason: 'ledger_failed'`).
  * The rows are still written as upserts keyed (userId, runId, runSequence,
- * sourceBucket, reason 'generate'), as a second guard against a duplicate.
+ * sourceBucket, reason), as a second guard against a duplicate. The reason is
+ * 'generate', or the hold's stored 'regenerate' for a paid revision (T-705).
  *
  * `actualUnits` (T-202): when below the hold, the difference goes back to
  * the buckets in the same write as the $pull. The kept part is taken from the
@@ -1233,6 +1371,9 @@ export async function settleInk(
   if (!before || !removed) return { settled: false, reason: 'no_hold' };
 
   const ledgerReference = reference ?? removed.reference;
+  // T-705: a paid revision's hold carries 'regenerate'; every other hold writes 'generate'.
+  const ledgerReason: 'generate' | 'regenerate' =
+    removed.reason === 'regenerate' ? 'regenerate' : 'generate';
   // Balance after this settle: the hold was already off the buckets, and the
   // refund went back on. Same balanceAfter shape as spendInk's rows.
   const totalAfter =
@@ -1276,13 +1417,13 @@ export async function settleInk(
             runId,
             runSequence,
             sourceBucket: row.sourceBucket,
-            reason: 'generate',
+            reason: ledgerReason,
           },
           update: {
             $setOnInsert: {
               userId: oid,
               delta: row.delta,
-              reason: 'generate',
+              reason: ledgerReason,
               sourceBucket: row.sourceBucket,
               balanceAfter: row.balanceAfter,
               reference: ledgerReference,
@@ -1458,48 +1599,4 @@ export function startHoldSweep(intervalMs: number = INK_HOLD_SWEEP_INTERVAL_MS):
 export function stopHoldSweep(): void {
   if (sweepTimer) clearInterval(sweepTimer);
   sweepTimer = null;
-}
-
-// ── Daily login bonus + rating bonus helpers ───────────────────────────────
-
-export const DAILY_LOGIN_BONUS = 2;
-export const RATING_BONUS_PER_DRAFT = 1;
-
-/**
- * Grant the daily login bonus if the user hasn't received it today (IST).
- * Returns the amount granted (0 if already claimed today).
- *
- * Called from the auth service /login + /refresh handlers. We use a single
- * atomic findOneAndUpdate guard with $lt on lastLoginBonusAt so simultaneous
- * logins from two devices grant only once.
- */
-export async function tryGrantDailyLoginBonus(userId: string): Promise<number> {
-  if (!mongoose.Types.ObjectId.isValid(userId)) return 0;
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-
-  const updated = await User.findOneAndUpdate(
-    {
-      _id: new Types.ObjectId(userId),
-      $or: [{ lastLoginBonusAt: null }, { lastLoginBonusAt: { $lt: startOfToday } }],
-    },
-    {
-      $inc: { earnedCredits: DAILY_LOGIN_BONUS },
-      $set: { lastLoginBonusAt: new Date() },
-    },
-    { new: true },
-  ).lean();
-
-  if (!updated) return 0;
-
-  await CreditLedger.create({
-    userId: new Types.ObjectId(userId),
-    source: 'login_bonus',
-    bucket: 'earnedCredits',
-    amount: DAILY_LOGIN_BONUS,
-    balanceAfter: updated.earnedCredits ?? DAILY_LOGIN_BONUS,
-    reference: 'Daily login bonus',
-  });
-
-  return DAILY_LOGIN_BONUS;
 }

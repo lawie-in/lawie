@@ -1143,16 +1143,18 @@ const packPost = (id: string) => request(app).post(`/${id}/annexures-pack`).set(
 const docGet = (id: string) => request(app).get(`/${id}`).set(headers());
 
 /** The HTML of one annexure, from its label to the next one. */
-function annexure(letter: string, next?: string): string {
-  const from = html.indexOf(`<div class="annexure-label">ANNEXURE ${letter}</div>`);
-  expect(from).toBeGreaterThanOrEqual(0);
-  const to = next
-    ? html.indexOf(`<div class="annexure-label">ANNEXURE ${next}</div>`, from)
-    : html.length;
-  return html.slice(from, to);
+// T-689c: found by heading, since the letters depend on whether the Synopsis is attached.
+function annexure(heading: string): string {
+  const m = new RegExp(
+    `<div class="annexure-label">ANNEXURE [A-Z]</div>\\s*<h2>${heading}</h2>`,
+  ).exec(html);
+  expect(m).not.toBeNull();
+  const from = m!.index;
+  const to = html.indexOf('<div class="annexure-label">', from + 1);
+  return html.slice(from, to === -1 ? undefined : to);
 }
-const memo = () => annexure('A', 'B');
-const vakalatnama = () => annexure('E', 'F');
+const memo = () => annexure('Memo of Parties');
+const vakalatnama = () => annexure('Vakalatnama');
 
 /** A document row as the collection holds it, with the pieces a test overrides. */
 async function insertDoc(fields: Record<string, unknown>): Promise<string> {
@@ -1266,8 +1268,9 @@ describe('T-381 C: POST /documents/:id/annexures-pack from a brief draft (AC3)',
     expect(a).not.toContain('State of');
     expect(html).not.toContain('GENERIC ADDRESS');
 
-    const e = vakalatnama();
-    expect(e).toContain('I/We, <strong>Jai Mehta</strong>, resident of 12 Lake Road, Patna,');
+    // T-700 (AJ-700a (1)): on a civil pack the Vakalatnama is an Index row only; no annexure page.
+    expect(html).not.toContain('<h2>Vakalatnama</h2>');
+    expect(html).toContain('<td>Vakalatnama</td><td>___________</td>');
   });
 
   it('a draft made before T-381 (template_id and source only; names only in doc.brief) falls back and renders names', async () => {
@@ -1285,9 +1288,9 @@ describe('T-381 C: POST /documents/:id/annexures-pack from a brief draft (AC3)',
     expect(res.status).toBe(200);
     expect(memo()).toContain('<strong>Old Plaintiff</strong>');
     expect(memo()).toContain('<strong>Old Defendant</strong>');
-    expect(vakalatnama()).toContain(
-      'I/We, <strong>Old Plaintiff</strong>, resident of 1 Old Road,',
-    );
+    // T-700 (AJ-700a (1)): on a civil pack the Vakalatnama is an Index row only; no annexure page.
+    expect(html).not.toContain('<h2>Vakalatnama</h2>');
+    expect(html).toContain('<td>Vakalatnama</td><td>___________</td>');
   });
 
   it('a pre-T-381 draft without a stored brief is refused, not blank', async () => {
@@ -1450,9 +1453,9 @@ describe('T-381 C: POST annexures-pack from a form draft', () => {
     expect(a).toContain('3 Form Street');
     expect(a).not.toContain('GENERIC');
     expect(a).not.toContain('Age: 99');
-    expect(vakalatnama()).toContain(
-      'I/We, <strong>Form Plaintiff</strong>, resident of 3 Form Street,',
-    );
+    // T-700 (AJ-700a (1)): on a civil pack the Vakalatnama is an Index row only; no annexure page.
+    expect(html).not.toContain('<h2>Vakalatnama</h2>');
+    expect(html).toContain('<td>Vakalatnama</td><td>___________</td>');
     expect(html).not.toContain('GENERIC');
   });
 
@@ -1466,8 +1469,14 @@ describe('T-381 C: POST annexures-pack from a form draft', () => {
     });
     const res = await packPost(docId);
     expect(res.status).toBe(200);
-    expect(memo()).toContain('<strong>The Client</strong>');
-    expect(html).not.toContain('Not The Client');
+    const rows = [...memo().matchAll(/<tr>\s*<td>([^<]*)<\/td>\s*<td>([\s\S]*?)<\/td>\s*<\/tr>/g)];
+    const defendantRow = rows.find((m) => m[1].trim() === 'Defendant');
+    expect(defendantRow).toBeDefined();
+    // The client (Defendant) cell is the client's name and never the plaintiff's.
+    expect(defendantRow![2]).toContain('<strong>The Client</strong>');
+    expect(defendantRow![2]).not.toContain('Not The Client');
+    // T-700b: the Plaintiff row now prints the brief's plaintiff_name.
+    expect(memo()).toContain('<strong>Not The Client</strong>');
   });
 
   it('a bail State row prints exactly what the pack printed before T-381', async () => {

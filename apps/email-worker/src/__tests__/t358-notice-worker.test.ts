@@ -487,7 +487,7 @@ describe('outcome report failure after a real send', () => {
 });
 
 describe('other templates are untouched', () => {
-  it('auth.welcome: no prepare, no report; the job recipients are used', async () => {
+  it('billing.lowCreditWarning: no prepare, no report; the job recipients are used', async () => {
     const send = okSend();
     const d = deps();
     await createProcessor(
@@ -496,7 +496,7 @@ describe('other templates are untouched', () => {
       d,
     )(
       noticeJob({
-        template: 'auth.welcome',
+        template: 'billing.lowCreditWarning',
         to: ['advocate@example.com'],
         cc: ['c@example.com'],
         data: { name: 'N', userId: USER_ID },
@@ -891,7 +891,7 @@ describe('verify-email outcome reporting (auth.verifyEmail jobs stamp the T-358 
     }
   });
 
-  it('other templates (auth.welcome) never report', async () => {
+  it('other templates (billing.lowCreditWarning) never report', async () => {
     const d = deps();
     await createProcessor(
       okSend(),
@@ -899,7 +899,7 @@ describe('verify-email outcome reporting (auth.verifyEmail jobs stamp the T-358 
       d,
     )(
       noticeJob({
-        template: 'auth.welcome',
+        template: 'billing.lowCreditWarning',
         to: ['advocate@example.com'],
         data: { name: 'N', userId: USER_ID },
       }),

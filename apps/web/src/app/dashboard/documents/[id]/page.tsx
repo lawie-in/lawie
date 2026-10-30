@@ -18,6 +18,7 @@ import DeleteDocumentDialog, {
   rememberDeleteOutcome,
   type DeleteOutcome,
 } from '@/components/documents/DeleteDocumentDialog';
+import ReviseDialog from '@/components/draft/ReviseDialog';
 import AnnexuresCard, { annexuresCardVisible } from '@/components/editor/AnnexuresCard';
 import { EDITOR_COPY } from '@/components/editor/copy';
 import DocumentEditor from '@/components/editor/DocumentEditor';
@@ -29,6 +30,7 @@ import {
   downloadBlob,
   exportDocx,
   exportPdf,
+  missingAsBlanks,
   type Blank,
   type ExportBlanksGoBackDetail,
 } from '@/components/editor/exportUtils';
@@ -47,6 +49,8 @@ interface DocumentData {
   docType: string;
   courtType: string;
   courtName: string;
+  // T-674 AC3: the on-screen court label; courtName may be an internal id.
+  courtLabel?: string;
   content: string;
   status: 'draft' | 'finalised' | 'exported';
   sectionsCited: string[];
@@ -66,6 +70,13 @@ interface DocumentData {
   courtDocument?: boolean;
   /** T-381 — the brief or the form inputs hold at least one party. Absent means no card. */
   hasParty?: boolean;
+  /** T-689 — the rule pack's name for the document type. Null or absent: show the humanised docType. */
+  docTypeLabel?: string | null;
+  /** T-705 — revisions so far, the limit, whether it can be revised, the original quote. */
+  revisions?: { count: number; freeUsed: boolean };
+  revisionLimit?: number;
+  revisable?: boolean;
+  originalInk?: number | null;
 }
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -99,6 +110,8 @@ export default function DocumentEditorPage() {
   const [exportError, setExportError] = useState<ExportFormat | null>(null);
   // T-115b — the Delete document button and its dialog (Rajesh's spec §1, §4).
   const [deleteOpen, setDeleteOpen] = useState(false);
+  // T-705 — the Revise dialog.
+  const [reviseOpen, setReviseOpen] = useState(false);
   const handleDeleted = (outcome: DeleteOutcome) => {
     rememberDeleteOutcome(outcome);
     router.push('/dashboard/documents');
@@ -150,7 +163,15 @@ export default function DocumentEditorPage() {
         if (!r.ok) throw new Error(r.status === 404 ? 'Document not found' : 'Failed to load');
         return r.json();
       })
-      .then((data: DocumentData) => {
+      .then((loaded: DocumentData) => {
+        // T-611 (AC 1, 5): a raw {{MISSING: label}} token never reaches the
+        // editor; it shows as [To be confirmed: label], as the exports print it.
+        // The server serves it so already; this covers any older response. The
+        // blank count reads both forms alike, so it does not change.
+        const data =
+          typeof loaded.content === 'string'
+            ? { ...loaded, content: missingAsBlanks(loaded.content) }
+            : loaded;
         setDoc(data);
         latestHtmlRef.current = data.content;
         savedHtmlRef.current = data.content;
@@ -505,7 +526,7 @@ export default function DocumentEditorPage() {
           <div className="flex min-w-0 items-center gap-3">
             <button
               onClick={() => router.push('/dashboard')}
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              className="text-nl-soft hover:bg-nl-brass-light hover:text-nl-text rounded-lg p-1.5"
               title="Back to dashboard"
             >
               <ArrowLeft size={18} />
@@ -513,11 +534,22 @@ export default function DocumentEditorPage() {
             {/* T-138: a guided document's title is typed by the advocate and can be one long
                 unbroken word. Below md it may shrink and break; from md it is as it was. */}
             <div className="min-w-0 break-words">
-              <h1 className="text-base font-bold capitalize text-slate-900">
+              {/* T-689b: the pack's name for the type (docTypeLabel) is shown as the pack
+                  writes it, so `capitalize` applies only to the title and the humanised
+                  docType fallback. */}
+              <h1
+                className={
+                  doc.docType !== 'guided' && doc.docTypeLabel
+                    ? 'text-nl-text text-base font-bold'
+                    : 'text-nl-text text-base font-bold capitalize'
+                }
+              >
                 {/* A document with no rule pack has no type of its own: its name is its title. */}
-                {doc.docType === 'guided' ? doc.title : doc.docType.replace(/_/g, ' ')}
+                {doc.docType === 'guided'
+                  ? doc.title
+                  : doc.docTypeLabel || doc.docType.replace(/_/g, ' ')}
               </h1>
-              <p className="text-xs text-slate-400">{doc.courtName}</p>
+              <p className="text-nl-soft text-xs">{doc.courtLabel ?? ''}</p>
             </div>
           </div>
 
@@ -724,13 +756,20 @@ export default function DocumentEditorPage() {
           <dl className="mt-3 space-y-2 text-xs">
             <div className="flex justify-between">
               <dt className="text-slate-400">Type</dt>
-              <dd className="font-medium capitalize text-slate-700">
-                {doc.docType.replace(/_/g, ' ')}
-              </dd>
+              {/* T-689: the pack's label is already cased; only the enum fallback is capitalised. */}
+              {doc.docTypeLabel ? (
+                <dd className="font-medium text-slate-700">{doc.docTypeLabel}</dd>
+              ) : (
+                <dd className="font-medium capitalize text-slate-700">
+                  {doc.docType.replace(/_/g, ' ')}
+                </dd>
+              )}
             </div>
             <div className="flex justify-between">
               <dt className="text-slate-400">Court</dt>
-              <dd className="max-w-[140px] truncate font-medium text-slate-700">{doc.courtName}</dd>
+              <dd className="max-w-[140px] truncate font-medium text-slate-700">
+                {doc.courtLabel || '—'}
+              </dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-slate-400">Status</dt>
@@ -753,6 +792,15 @@ export default function DocumentEditorPage() {
           </dl>
         </div>
 
+        {/* T-705 — revise this draft (dialog below) */}
+        {doc.revisable && (
+          <div className="pt-2">
+            <button type="button" onClick={() => setReviseOpen(true)} className={secondaryButton}>
+              Revise
+            </button>
+          </div>
+        )}
+
         {/* T-115b — at the bottom, away from Download and Edit, so it is not hit by mistake */}
         <div className="pt-2">
           <button type="button" onClick={() => setDeleteOpen(true)} className={secondaryButton}>
@@ -760,6 +808,31 @@ export default function DocumentEditorPage() {
           </button>
         </div>
       </div>
+
+      {reviseOpen && doc.revisable && (
+        <ReviseDialog
+          documentId={doc._id}
+          documentLabel={doc.docTypeLabel || doc.title}
+          revisions={doc.revisions ?? { count: 0, freeUsed: false }}
+          revisionLimit={doc.revisionLimit ?? 10}
+          originalInk={doc.originalInk ?? null}
+          beforeRevise={async () => {
+            // Pending edits are saved first, so the revision starts from them.
+            if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+            if (latestHtmlRef.current === savedHtmlRef.current) return true;
+            return saveDocument(latestHtmlRef.current);
+          }}
+          onClose={(stale) => {
+            setReviseOpen(false);
+            if (stale) retryLoad();
+          }}
+          onRevised={() => {
+            setReviseOpen(false);
+            setChecklist([]);
+            retryLoad();
+          }}
+        />
+      )}
 
       {deleteOpen && (
         <DeleteDocumentDialog

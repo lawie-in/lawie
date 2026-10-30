@@ -94,3 +94,25 @@ T-472 (limitation computed, merge 4f91e5a0 local only) and T-567 (legal server a
 
 ## T-587 welcome email: prod worker needs GST_ADDRESS (26 Oct 2026, Priya, from Tanvi)
 The email worker refuses a LIVE welcome send without `GST_ADDRESS` (the footer needs the street address, same as the reset and signup-attempt mails). The prod email-worker env must have `GST_ADDRESS` set (name only here; you set the value). It already needs it for reset mails.
+
+## T-610 + T-622 must ship together (26 Oct 2026, Priya, from Ajay T610-F2a f0985461)
+Do not cut prod with T-610 unless T-622 (DocumentChoiceStep: no pre-selected card when `unranked: true`) is also merged into develop_staging.
+
+## T-613 + T-628 + T-629 ship together (26 Oct 2026, Priya, Ajay R2-F1 12914711)
+Do not cut prod with T-613 (O.39) unless T-628 (past date in the prayer) and T-629 (required fields block Confirm) are also merged. Release step: re-seed courts (`seed-courts`) for the Patna Junior Division record and the Andaman id fix. Founder or ops runs it.
+
+## T-637 before any prod cut carrying T-611 (27 Oct 2026, Priya)
+The Templates form route has no T-611 gate until T-637 merges. Do not cut prod for the drafting fixes without it.
+
+## FR-6: feature.fact_ledger must be ON, or the gate must run without it (27 Oct 2026, Ajay 06d18fed)
+T-611 and T-637 work only where feature.fact_ledger is ON, and it defaults to OFF. No prod release may be called the fix for Anushka's 26 Oct faults unless the flag is ON in prod or the gate runs without a ledger. The release note must state the flag's value. Arjun is checking the current value via Nikhil.
+
+## T-613 + T-628 + T-629 + T-637 ship to prod together (Ajay FR-5a 04f5aa77, 27 Oct 2026)
+These four tickets go in one release. T-629 enforces the O.39 required fields on both the brief and the form routes. FR-6 is met by T-637 (the gate runs without a ledger, Arjun); the release note still states the feature.fact_ledger value.
+
+## Release candidate, 27 Oct 2026 (Priya)
+All drafting release gates are merged into develop_staging at 819a98a9: T-610, T-611 (with T-488), T-612, T-613, T-622, T-624, T-628, T-629, T-634 and T-637, plus T-616/T-616b, T-608, T-587, T-593, T-594 and T-606. Next steps:
+1. The founder merges develop_staging into develop.
+2. Nikhil deploys the develop box.
+3. Anushka re-runs the 26 Oct drafting matters on develop.
+Prod release steps: run seed:courts; deploy auth as a quick rollout; delete JWT_REFRESH_EXPIRES_IN from the env (optional). The release note states feature.fact_ledger (the gate runs either way) and makes no "fact-checked" or "verified" claims (Ajay FR-6/FR-7). Open, not blocking: Ajay to rule on mixed lists such as ["Declaration","N/A"] and zero-width values (Shashank's T-629 note).

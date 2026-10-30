@@ -13,6 +13,9 @@ import {
 
 import { flush } from './dash-test-utils';
 
+import { takeDraftPrefill } from '@/components/intake/initialQuery';
+import { DESCRIPTION_MAX } from '@/lib/draftPrefill';
+
 import { SectionFinderPanel } from '@/components/sections/SectionFinderPanel';
 import {
   cleanupMounted,
@@ -42,6 +45,14 @@ afterEach(() => {
   window.sessionStorage.clear();
 });
 
+// A realistic matter text of exactly `n` characters that ends mid-sentence, so a cut is visible.
+const matterText = (n: number): string => {
+  const base =
+    'The client is a sole earner and was arrested after the chargesheet was filed, the sureties are ready and the magistrate refused bail. ';
+  const tail = ' he is the';
+  return base.repeat(Math.ceil(n / base.length)).slice(0, n - tail.length) + tail;
+};
+
 const input = () => q('[role=combobox]') as HTMLInputElement;
 const option = (label: string) => qa('[role=option]').find((o) => o.textContent === label)!;
 
@@ -64,29 +75,58 @@ describe('draftPrefill', () => {
     expect(draftPrefill(text)).toBe(text);
   });
 
-  it('cuts to 500 code points after trimming', () => {
-    expect(DRAFT_PREFILL_MAX).toBe(500);
-    expect(draftPrefill(`  ${'a'.repeat(600)}  `)).toBe('a'.repeat(500));
-    // leading spaces are trimmed first, so they do not eat into the 500
-    expect(draftPrefill(` ${'b'.repeat(500)}`)).toBe('b'.repeat(500));
-    expect(draftPrefill('c'.repeat(499))).toBe('c'.repeat(499));
-    const mid = `w${' '.repeat(10)}${'z'.repeat(600)}`;
+  it('the limit is the shared DESCRIPTION_MAX (4000, pinned here too)', () => {
+    expect(DRAFT_PREFILL_MAX).toBe(DESCRIPTION_MAX);
+    expect(DRAFT_PREFILL_MAX).toBe(4000);
+  });
+
+  it('cuts to the limit after trimming (MAX passes whole, MAX+1 is cut to MAX)', () => {
+    const M = DRAFT_PREFILL_MAX;
+    expect(draftPrefill(`  ${'a'.repeat(M + 100)}  `)).toBe('a'.repeat(M));
+    expect(draftPrefill('a'.repeat(M + 1))).toBe('a'.repeat(M));
+    expect(draftPrefill('a'.repeat(M))).toBe('a'.repeat(M));
+    // surrounding spaces are trimmed first, so they do not eat into the limit
+    expect(draftPrefill(` ${'b'.repeat(M)} `)).toBe('b'.repeat(M));
+    expect(draftPrefill('c'.repeat(M - 1))).toBe('c'.repeat(M - 1));
+    const mid = `w${' '.repeat(10)}${'z'.repeat(M + 100)}`;
     const cut = draftPrefill(mid);
-    expect(cut).toHaveLength(500);
+    expect(cut).toHaveLength(M);
     expect(cut.startsWith('w          z')).toBe(true);
+  });
+
+  it('a 500-character and a 501-character description are no longer cut (T-608)', () => {
+    expect(draftPrefill('d'.repeat(500))).toHaveLength(500);
+    expect(draftPrefill('d'.repeat(501))).toHaveLength(501);
+  });
+
+  it('whitespace that ends up at the cut is kept (the cut does not trim again)', () => {
+    const M = DRAFT_PREFILL_MAX;
+    const got = draftPrefill(`${'a'.repeat(M - 1)} ${'b'.repeat(10)}`);
+    expect(got).toBe(`${'a'.repeat(M - 1)} `);
+    expect(got).toHaveLength(M);
   });
 });
 
 describe('draftPrefill: astral characters and lone surrogates', () => {
-  it('600 emoji give exactly 500 code points and no split pair', () => {
-    const got = draftPrefill('😀'.repeat(600));
-    expect(Array.from(got)).toHaveLength(500);
-    expect(got).toBe('😀'.repeat(500));
-    expect(got).toHaveLength(1000);
+  const M = DRAFT_PREFILL_MAX;
+
+  it('emoji beyond the limit are cut in UTF-16 units with no split pair', () => {
+    const got = draftPrefill('😀'.repeat(M));
+    expect(got).toHaveLength(M); // M is even: M / 2 whole emoji
+    expect(Array.from(got)).toHaveLength(M / 2);
+    expect(got).toBe('😀'.repeat(M / 2));
   });
 
-  it('a pair that straddles unit 500 is not split', () => {
-    expect(draftPrefill(`${'a'.repeat(499)}😀tail`)).toBe(`${'a'.repeat(499)}😀`);
+  it('a pair that straddles unit MAX is dropped, not split', () => {
+    const got = draftPrefill(`${'a'.repeat(M - 1)}😀tail`);
+    expect(got).toBe('a'.repeat(M - 1));
+    expect(got).toHaveLength(M - 1);
+  });
+
+  it('a pair that ends exactly at unit MAX is kept', () => {
+    const got = draftPrefill(`${'a'.repeat(M - 2)}😀tail`);
+    expect(got).toBe(`${'a'.repeat(M - 2)}😀`);
+    expect(got).toHaveLength(M);
   });
 
   it('a lone surrogate becomes U+FFFD, never throws, and the result is well formed', () => {
@@ -107,8 +147,8 @@ describe('draftPrefill: astral characters and lone surrogates', () => {
   });
 
   it('a lone surrogate inside the cut window is replaced; one past it is dropped', () => {
-    expect(draftPrefill(`${'a'.repeat(499)}\ud800z`)).toBe(`${'a'.repeat(499)}�`);
-    expect(draftPrefill(`${'a'.repeat(500)}\ud800`)).toBe('a'.repeat(500));
+    expect(draftPrefill(`${'a'.repeat(M - 1)}\ud800z`)).toBe(`${'a'.repeat(M - 1)}�`);
+    expect(draftPrefill(`${'a'.repeat(M)}\ud800`)).toBe('a'.repeat(M));
   });
 });
 
@@ -188,6 +228,46 @@ describe('DashboardCommandBar routing', () => {
     expect(window.sessionStorage.getItem(DRAFT_PREFILL_KEY)).toBe('bail for a client & family');
   });
 
+  it('T-608 AC3: a 657-character description typed in the box arrives whole at the reader', () => {
+    const text = matterText(657);
+    expect(text).toHaveLength(657);
+    mount(<DashboardCommandBar />);
+    typeInto(input(), text);
+    click(q('button[type=submit]'));
+    expect(push).toHaveBeenCalledWith('/dashboard/new');
+    const got = takeDraftPrefill(window.sessionStorage);
+    expect(got).toHaveLength(657);
+    expect(got).toBe(text);
+    expect(got!.endsWith(' he is the')).toBe(true);
+  });
+
+  it.each([
+    ['exactly MAX', DESCRIPTION_MAX, DESCRIPTION_MAX],
+    ['MAX + 1 (cut to MAX, no error)', DESCRIPTION_MAX + 1, DESCRIPTION_MAX],
+  ])(
+    'T-608: %s characters typed in the box reach the reader as %d-capped text',
+    (_n, typed, want) => {
+      const text = matterText(typed);
+      mount(<DashboardCommandBar />);
+      typeInto(input(), text);
+      expect(() => click(q('button[type=submit]'))).not.toThrow();
+      expect(push).toHaveBeenCalledWith('/dashboard/new');
+      expect(window.sessionStorage.getItem(DRAFT_PREFILL_KEY)).toBe(text.slice(0, want));
+      expect(takeDraftPrefill(window.sessionStorage)).toBe(text.slice(0, want));
+    },
+  );
+
+  it('T-608: a long description goes through sessionStorage only, never the URL', () => {
+    const text = matterText(657);
+    mount(<DashboardCommandBar />);
+    typeInto(input(), text);
+    click(q('button[type=submit]'));
+    const url = push.mock.calls[0][0] as string;
+    expect(url).toBe('/dashboard/new');
+    expect(url).not.toContain('he%20is');
+    expect(url).not.toContain('sole');
+  });
+
   it('the pushed URL never contains the typed text', () => {
     mount(<DashboardCommandBar />);
     typeInto(input(), 'Asha');
@@ -254,11 +334,204 @@ describe('DashboardCommandBar routing', () => {
     expect(window.sessionStorage.getItem(DRAFT_PREFILL_KEY)).toBe('stale');
   });
 
-  it('a typed template name picks the template, not the free text', () => {
+  it('a typed template name picked from the list goes to the chip page and carries the text (T-630)', () => {
     mount(<DashboardCommandBar />);
     typeInto(input(), 'plaint');
     click(option('Plaint'));
     expect(push).toHaveBeenCalledWith('/dashboard/new');
+    expect(window.sessionStorage.getItem(DRAFT_PREFILL_KEY)).toBe('plaint');
+  });
+});
+
+describe('T-630: a chip or option picked with text typed carries the text and the kind', () => {
+  const stored = () => window.sessionStorage.getItem(DRAFT_PREFILL_KEY);
+  const draft = () => click(q('button[type=submit]'));
+  const highlightFirst = () => press(input(), { key: 'ArrowDown' });
+
+  it.each([
+    ['Bail application', '/dashboard/new?kind=bail_regular'],
+    ['Written statement', '/dashboard/new?kind=written_statement'],
+    ['Legal notice', '/dashboard/new'],
+    ['Plaint', '/dashboard/new'],
+  ])('clicking "%s" with text typed pushes %s and stores the text', (label, href) => {
+    const text = `${label} for Ravi`;
+    mount(<DashboardCommandBar />);
+    typeInto(input(), text);
+    click(option(label));
+    expect(push).toHaveBeenCalledTimes(1);
+    expect(push).toHaveBeenCalledWith(href);
+    expect(stored()).toBe(text);
+  });
+
+  it('Enter on a highlighted option does the same as a click (kind + text)', () => {
+    mount(<DashboardCommandBar />);
+    typeInto(input(), 'Bail application for Ravi');
+    highlightFirst();
+    press(input(), { key: 'Enter' });
+    expect(push).toHaveBeenCalledTimes(1);
+    expect(push).toHaveBeenCalledWith('/dashboard/new?kind=bail_regular');
+    expect(stored()).toBe('Bail application for Ravi');
+  });
+
+  it('Draft with a bail option highlighted pushes ?kind=bail_regular and stores the text', () => {
+    mount(<DashboardCommandBar />);
+    typeInto(input(), 'Bail application for Ravi');
+    highlightFirst();
+    draft();
+    expect(push).toHaveBeenCalledTimes(1);
+    expect(push).toHaveBeenCalledWith('/dashboard/new?kind=bail_regular');
+    expect(stored()).toBe('Bail application for Ravi');
+  });
+
+  it('Draft with a written statement highlighted pushes ?kind=written_statement', () => {
+    mount(<DashboardCommandBar />);
+    typeInto(input(), 'Written statement for Ravi');
+    highlightFirst();
+    draft();
+    expect(push).toHaveBeenCalledWith('/dashboard/new?kind=written_statement');
+    expect(stored()).toBe('Written statement for Ravi');
+  });
+
+  it('Draft with a kind-less chip highlighted (Plaint) pushes plain /dashboard/new', () => {
+    mount(<DashboardCommandBar />);
+    typeInto(input(), 'plaint for Ravi');
+    highlightFirst();
+    draft();
+    expect(push).toHaveBeenCalledWith('/dashboard/new');
+    expect(stored()).toBe('plaint for Ravi');
+  });
+
+  it('plain Draft with no highlight is exactly /dashboard/new, even if the text names a template', () => {
+    mount(<DashboardCommandBar />);
+    typeInto(input(), 'Bail application for Ravi');
+    draft();
+    expect(push).toHaveBeenCalledTimes(1);
+    expect(push.mock.calls[0][0]).toBe('/dashboard/new');
+    expect(stored()).toBe('Bail application for Ravi');
+  });
+
+  it('after Escape drops the highlight, Draft is plain /dashboard/new', () => {
+    mount(<DashboardCommandBar />);
+    typeInto(input(), 'Bail application for Ravi');
+    highlightFirst();
+    press(input(), { key: 'Escape' });
+    draft();
+    expect(push).toHaveBeenCalledWith('/dashboard/new');
+  });
+
+  it('Browse all templates with text typed goes to /dashboard/templates and stores no text', () => {
+    mount(<DashboardCommandBar />);
+    typeInto(input(), 'browse all templates');
+    const set = jest.spyOn(Storage.prototype, 'setItem');
+    click(option('Browse all templates'));
+    expect(push).toHaveBeenCalledTimes(1);
+    expect(push).toHaveBeenCalledWith('/dashboard/templates');
+    expect(set).not.toHaveBeenCalled();
+    expect(stored()).toBeNull();
+  });
+
+  it('Browse all templates with text typed leaves a pre-existing key untouched', () => {
+    window.sessionStorage.setItem(DRAFT_PREFILL_KEY, 'kept');
+    mount(<DashboardCommandBar />);
+    typeInto(input(), 'browse all templates');
+    const remove = jest.spyOn(Storage.prototype, 'removeItem');
+    click(option('Browse all templates'));
+    expect(push).toHaveBeenCalledWith('/dashboard/templates');
+    expect(remove).not.toHaveBeenCalled();
+    expect(stored()).toBe('kept');
+  });
+
+  it('Draft with Browse highlighted goes to /dashboard/new with the text stored (pinned)', () => {
+    mount(<DashboardCommandBar />);
+    typeInto(input(), 'browse all templates');
+    highlightFirst();
+    draft();
+    expect(push).toHaveBeenCalledTimes(1);
+    expect(push).toHaveBeenCalledWith('/dashboard/new');
+    expect(stored()).toBe('browse all templates');
+  });
+
+  it('a chip click with the input empty neither writes nor removes the key', () => {
+    window.sessionStorage.setItem(DRAFT_PREFILL_KEY, 'kept');
+    mount(<DashboardCommandBar />);
+    act(() => input().focus());
+    const set = jest.spyOn(Storage.prototype, 'setItem');
+    const remove = jest.spyOn(Storage.prototype, 'removeItem');
+    click(option('Written statement'));
+    expect(push).toHaveBeenCalledWith('/dashboard/new?kind=written_statement');
+    expect(set).not.toHaveBeenCalled();
+    expect(remove).not.toHaveBeenCalled();
+    expect(stored()).toBe('kept');
+  });
+
+  it('a whitespace-only input chip click neither writes nor removes the key', () => {
+    window.sessionStorage.setItem(DRAFT_PREFILL_KEY, 'kept');
+    mount(<DashboardCommandBar />);
+    typeInto(input(), '   ');
+    const set = jest.spyOn(Storage.prototype, 'setItem');
+    const remove = jest.spyOn(Storage.prototype, 'removeItem');
+    click(option('Bail application'));
+    expect(push).toHaveBeenCalledWith('/dashboard/new?kind=bail_regular');
+    expect(set).not.toHaveBeenCalled();
+    expect(remove).not.toHaveBeenCalled();
+    expect(stored()).toBe('kept');
+  });
+
+  it('text longer than the limit is capped on the chip path', () => {
+    const text = `Bail application ${matterText(DESCRIPTION_MAX + 500)}`;
+    mount(<DashboardCommandBar />);
+    typeInto(input(), text);
+    click(option('Bail application'));
+    expect(push).toHaveBeenCalledWith('/dashboard/new?kind=bail_regular');
+    expect(stored()).toHaveLength(DESCRIPTION_MAX);
+    expect(stored()).toBe(text.slice(0, DESCRIPTION_MAX));
+  });
+
+  it('a lone surrogate and surrounding spaces are sanitised on the chip path', () => {
+    mount(<DashboardCommandBar />);
+    typeInto(input(), '  Bail application \ud800 for Ravi  ');
+    click(option('Bail application'));
+    expect(push).toHaveBeenCalledWith('/dashboard/new?kind=bail_regular');
+    expect(stored()).toBe('Bail application � for Ravi');
+  });
+
+  it('chip navigation still happens when sessionStorage throws', () => {
+    jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('QuotaExceededError');
+    });
+    mount(<DashboardCommandBar />);
+    typeInto(input(), 'Bail application for Ravi');
+    click(option('Bail application'));
+    expect(push).toHaveBeenCalledWith('/dashboard/new?kind=bail_regular');
+  });
+
+  it('no pushed URL ever contains the typed text or a q= param', () => {
+    const text = 'Bail application for Ravi Zq7731';
+    const paths: Array<() => void> = [
+      () => click(option('Bail application')),
+      () => {
+        highlightFirst();
+        press(input(), { key: 'Enter' });
+      },
+      () => {
+        highlightFirst();
+        draft();
+      },
+      () => draft(),
+    ];
+    for (const go of paths) {
+      push.mockClear();
+      window.sessionStorage.clear();
+      const m = mount(<DashboardCommandBar />);
+      typeInto(input(), text);
+      go();
+      expect(push).toHaveBeenCalledTimes(1);
+      const url = push.mock.calls[0][0] as string;
+      expect(url).not.toMatch(/Ravi|Zq7731|%|q=/);
+      expect(url === '/dashboard/new' || url === '/dashboard/new?kind=bail_regular').toBe(true);
+      expect(new URL(url, 'http://x').searchParams.has('q')).toBe(false);
+      m.unmount();
+    }
   });
 });
 

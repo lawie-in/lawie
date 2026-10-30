@@ -92,8 +92,9 @@ describe('T-318 annexure footers', () => {
       bodyParaCount: 8,
     });
     expect(html).not.toBe('');
-    expect(countOf(html, 'class="disclaimer"')).toBe(7);
-    expect(countOf(html, `<div class="disclaimer">${ANNEXURE_LINE}</div>`)).toBe(7);
+    // T-689c: no Synopsis without a pack and a High Court, so 6 annexures, 6 footers
+    expect(countOf(html, 'class="disclaimer"')).toBe(6);
+    expect(countOf(html, `<div class="disclaimer">${ANNEXURE_LINE}</div>`)).toBe(6);
     expect(html).not.toMatch(/AI-assisted/i);
     expect(html).not.toContain('generated with AI');
   });

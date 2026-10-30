@@ -1,6 +1,6 @@
 {
   "pack": "bail_regular",
-  "version": 5,
+  "version": 7,
   "bodyParagraphs": { "default": 10, "cap": 25 },
   "none_values": "first_bail_application.equals (T-334)",
   "antecedents_none_values": [
@@ -22,6 +22,13 @@
     "koi aapradhik record nahi",
     "कोई नहीं",
     "कोई आपराधिक रिकॉर्ड नहीं"
+  ],
+  "medical_condition_none_values": [
+    "None",
+    "none",
+    "no",
+    "नहीं",
+    "कोई नहीं"
   ],
   "clauses": [
     {
@@ -51,6 +58,41 @@
       ]
     },
     {
+      "id": "custody_status_derived",
+      "order": 29,
+      "required": false,
+      "source": "fixed",
+      "when": {
+        "all_of": [
+          {
+            "key": "currently_in_custody",
+            "in": [
+              "yes_judicial",
+              "yes_police"
+            ]
+          },
+          {
+            "key": "custody_since_derived",
+            "present": true
+          }
+        ]
+      },
+      "text": "The applicant was arrested on {custody_since} and is now in {custody_kind}.",
+      "slots": [
+        "custody_since",
+        "custody_kind"
+      ],
+      "derived": {
+        "custody_kind": {
+          "from": "currently_in_custody",
+          "map": {
+            "yes_judicial": "judicial custody",
+            "yes_police": "police custody"
+          }
+        }
+      }
+    },
+    {
       "id": "custody_status",
       "order": 30,
       "required": true,
@@ -75,7 +117,8 @@
             "yes_police": "police custody"
           }
         }
-      }
+      },
+      "skip_if_rendered": "custody_status_derived"
     },
     {
       "id": "arrested_on",
@@ -85,7 +128,8 @@
       "text": "The applicant was arrested on {arrest_date}.",
       "slots": [
         "arrest_date"
-      ]
+      ],
+      "skip_if_rendered": "custody_status_derived"
     },
     {
       "id": "facts",
@@ -205,7 +249,11 @@
           "text": "The applicant seeks bail on medical grounds, the applicant suffering from {medical_condition}.",
           "slots": [
             "medical_condition"
-          ]
+          ],
+          "requires": {
+            "key": "medical_condition",
+            "not_in": "medical_condition_none_values"
+          }
         },
         "willing_mediation": {
           "text": "The applicant is willing to take part in mediation or counselling."
@@ -215,6 +263,25 @@
           "slots": [
             "applicant_age"
           ]
+        },
+        "business_dispute_civil_in_nature": {
+          "text": "The dispute between the parties is essentially civil in nature."
+        },
+        "amount_paid_or_deposited": {
+          "text": "The amount in dispute has been paid or deposited by or on behalf of the applicant, without prejudice to the applicant's defence."
+        },
+        "only_earning_member": {
+          "use_clause": "sole_breadwinner",
+          "requires": {
+            "key": "sole_earning_member",
+            "in": [
+              "yes"
+            ]
+          },
+          "missing_label": "Whether the applicant is the only earning member of the family"
+        },
+        "ready_to_furnish_bail_bond_and_sureties": {
+          "text": "The applicant is ready to furnish a bail bond with surety to the satisfaction of this Hon'ble Court and to abide by every condition this Hon'ble Court may impose."
         }
       }
     },
@@ -331,7 +398,8 @@
           "yes"
         ]
       },
-      "text": "The applicant is the only earning member of the family."
+      "text": "The applicant is the only earning member of the family.",
+      "skip_if_rendered": "grounds.only_earning_member"
     },
     {
       "id": "dependants",
@@ -360,9 +428,17 @@
       "order": 90,
       "required": false,
       "source": "fixed",
-      "text": "The applicant suffers from {medical_condition}.",
-      "slots": [
-        "medical_condition"
+      "variants": [
+        {
+          "when": {
+            "key": "medical_condition",
+            "not_in": "medical_condition_none_values"
+          },
+          "text": "The applicant suffers from {medical_condition}.",
+          "slots": [
+            "medical_condition"
+          ]
+        }
       ],
       "skip_if_rendered": "grounds.medical_grounds"
     },

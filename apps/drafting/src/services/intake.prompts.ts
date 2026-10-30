@@ -37,7 +37,12 @@ Rules:
 - confidence "high": exactly one template clearly fits.
 - confidence "medium": two or three templates could fit and the description does not settle which. List them in alternatives, best first.
 - confidence "low": no template in the catalogue fits the document they need, but it is a legal drafting request. Set template_id to null.
-- Bail: a person who has already been arrested or is in custody needs regular bail. A person who has not been arrested and expects to be arrested needs anticipatory bail. Never choose an anticipatory bail template when the description says the person has been arrested or is in custody. Never choose a regular bail template when the description says the person has not been arrested. If the description does not say which, use confidence "medium" and list both.
+- Bail: a person who has already been arrested or is in custody needs regular bail. A person who has not been arrested and expects to be arrested needs anticipatory bail (bail_anticipatory: s.482 BNSS, old s.438 CrPC). Never choose an anticipatory bail template when the description says the person has been arrested or is in custody. Never choose a regular bail template when the description says the person has not been arrested. If the description does not say which, use confidence "medium" and list both.
+- Regular bail, which court: an application to the Court of Session or the High Court (s.483 BNSS, old s.439 CrPC) is bail_regular, including when a Magistrate has already refused bail. An application to a Magistrate (s.480 BNSS, old s.437 CrPC) is bail_before_magistrate. If the description names neither court, choose bail_regular with confidence "medium" and list bail_before_magistrate second.
+- Default bail: choose default_bail only when the description asks for default or statutory bail because the police report was not filed within the period allowed (s.187(3) BNSS, old s.167(2) CrPC). A chargesheet that is still pending does not, on its own, make it default bail.
+- Interim bail: choose interim_bail only when the description asks for interim or temporary bail until the main bail application is decided, or for a short period.
+- Cancellation: choose bail_cancellation only when the description asks to cancel bail already granted to another person. Never choose it for a person who is seeking bail.
+- Section 482: s.482 of the old CrPC is not bail; it is the High Court's inherent power (now s.528 BNSS). Treat s.482 as anticipatory bail only when the description says BNSS or asks for anticipatory bail.
 - A catalogue line may end with "match terms": those terms alone are not enough to choose that template when the description also has divorce, Domestic Violence Act (DV Act), Hindu Adoptions and Maintenance Act (HAMA), custody or guardianship words; in that case use confidence "medium" and list it together with those templates in alternatives, so the advocate chooses.
 - is_legal_drafting false: the request is not for a legal document at all (for example general questions, chat, or unrelated tasks). Set template_id to null.
 - is_court_document true when the document would be filed in or addressed to a court or tribunal, or the description mentions a court, an FIR, a case number, bail, a petition, an appeal, a suit or a writ.
@@ -46,7 +51,16 @@ Rules:
 Reply with JSON only, no other text, in exactly this shape:
 {"template_id": string or null, "confidence": "high" | "medium" | "low", "alternatives": [template_id, ...], "is_legal_drafting": boolean, "is_court_document": boolean, "category": string}`;
 
-export function buildMatchUserPrompt(description: string, catalogue: CatalogueEntry[]): string {
+/**
+ * T-681b: the match user prompt in two parts, for prompt caching. `catalogue` is the
+ * catalogue part: the same bytes for every request with the same catalogue, so it carries
+ * the cache breakpoint. `tail` is the rest (the blank line and the user's description).
+ * `catalogue + tail` is exactly buildMatchUserPrompt's text: no text is added or moved.
+ */
+export function buildMatchUserParts(
+  description: string,
+  catalogue: CatalogueEntry[],
+): { catalogue: string; tail: string } {
   const lines = catalogue.map(
     (t) =>
       `${t.template_id} | ${t.display_name} | ${t.category} | ${oneLine(t.description, 140)}` +
@@ -55,13 +69,21 @@ export function buildMatchUserPrompt(description: string, catalogue: CatalogueEn
         ? ` | match terms: ${t.match_terms.join(', ')}`
         : ''),
   );
-  return `Catalogue (template_id | name | category | description):
-${lines.join('\n')}
+  return {
+    catalogue: `Catalogue (template_id | name | category | description):
+${lines.join('\n')}`,
+    tail: `
 
 User's description:
 <description>
 ${description}
-</description>`;
+</description>`,
+  };
+}
+
+export function buildMatchUserPrompt(description: string, catalogue: CatalogueEntry[]): string {
+  const parts = buildMatchUserParts(description, catalogue);
+  return parts.catalogue + parts.tail;
 }
 
 export const FILL_SYSTEM_PROMPT = `You read a user's description of a legal matter and copy out the details it states, into the fields of a form.
@@ -140,6 +162,7 @@ Step 3. Write the questions.
 - Ask only about lines of the CHECKLIST. Never ask about anything that is not on it.
 - One line per question. Plain words. At most 25 words.
 - Never ask for something already given. Never suggest an answer. Never word a question so that it points to one answer.
+For a required party (plaintiff, defendant, applicant, petitioner, respondent, complainant, accused, or the person or authority the document is against), never offer to leave it blank, mark it unknown, show it as unknown, or use any other placeholder. Ask for the party's name. If the user says the name is not known, ask for a description that identifies the party (for example, how the party is connected to the facts), and never suggest a placeholder.
 
 Return JSON only, with no other text, in one of these shapes:
 
@@ -177,6 +200,7 @@ Usually: who it is from, who it is to, any other parties, what happened in order
 Step 3. Decide whether to ask or to write the brief.
 - Ask only for what is needed and missing. At most 5 questions. One thing per question. Plain words.
 - Never ask for something already given. Never suggest an answer. Never guess.
+For a required party (plaintiff, defendant, applicant, petitioner, respondent, complainant, accused, or the person or authority the document is against), never offer to leave it blank, mark it unknown, show it as unknown, or use any other placeholder. Ask for the party's name. If the user says the name is not known, ask for a description that identifies the party (for example, how the party is connected to the facts), and never suggest a placeholder.
 - In strict mode, always ask for the court or authority, the parties and the dates if any of them is missing.
 - In light mode, ask nothing if the description is enough.
 - In round 2, ask only what is still missing after the answers.

@@ -40,6 +40,10 @@ export type EmailTemplate =
   | 'billing.lowCreditWarning'
   | 'billing.taxInvoice'
   | 'billing.creditNote'
+  // T-646 (Arjun ruling 4): the payment-concern acknowledgement and the support notice. Both jobs
+  // carry { userId, concernId } only; the worker fetches the rest from billing at send time.
+  | 'billing.concernReceived'
+  | 'admin.paymentConcern'
   | 'drafting.draftComplete'
   | 'admin.referralIssued'
   | 'admin.advocatePackInvite'
@@ -68,6 +72,10 @@ const TIER_BY_TEMPLATE: Record<EmailTemplate, 'high' | 'low'> = {
   'billing.lowCreditWarning': 'low',
   'billing.taxInvoice': 'high',
   'billing.creditNote': 'high',
+  // T-646: the customer just raised it; the acknowledgement goes at once.
+  'billing.concernReceived': 'high',
+  // T-646: support has a 24 h acknowledgement clock (AJ-646-M3), so not the low tier.
+  'admin.paymentConcern': 'high',
   'drafting.draftComplete': 'low',
   'admin.referralIssued': 'low',
   'admin.advocatePackInvite': 'low',
@@ -78,6 +86,7 @@ const TIER_BY_TEMPLATE: Record<EmailTemplate, 'high' | 'low'> = {
 
 /** Templates whose job carries a userId only; the worker asks auth for the address. */
 export type UserIdOnlyTemplate =
+  | 'auth.welcome'
   | 'auth.verifyEmail'
   | 'auth.passwordReset'
   | 'auth.unverifiedDeletionNotice'
@@ -179,8 +188,29 @@ export interface EnqueueSignupAttemptInput {
   priority?: 'high' | 'low';
 }
 
+/**
+ * T-587 (Arjun, option A): the welcome email carries the userId only, like T-223. No address and
+ * no name in Redis: the worker asks auth (/internal/welcome/prepare) for both at send time. The
+ * jobId is fixed per user (`welcome-<userId>`; BullMQ refuses a custom id with one colon, so not
+ * `welcome:<userId>`): a second enqueue while the job is kept is dropped. A completed job is kept
+ * up to 7 days or the 1000 most recent completed jobs, whichever is fewer; a failed one 30 days.
+ * Auth's welcomeQueuedAt claim is the real once-only guard; this is only a second fence.
+ */
+export interface EnqueueWelcomeEmailInput {
+  template: 'auth.welcome';
+  userId: string;
+  /** Optional explicit priority; defaults to TIER_BY_TEMPLATE['auth.welcome'] ('low'). */
+  priority?: 'high' | 'low';
+}
+
+/** T-587: the welcome job's fixed id for a user. */
+export function welcomeJobId(userId: string): string {
+  return `welcome-${userId}`;
+}
+
 export type EnqueueEmailInput =
   | EnqueueAddressedEmailInput
+  | EnqueueWelcomeEmailInput
   | EnqueueVerifyEmailInput
   | EnqueuePasswordResetInput
   | EnqueueUnverifiedNoticeInput
@@ -251,6 +281,27 @@ export async function enqueueEmail(input: EnqueueEmailInput): Promise<EnqueueEma
     if (pending) return first;
     await queue.removeDeduplicationKey(deduplicationId);
     return addVerifyJob();
+  }
+
+  if (input.template === 'auth.welcome') {
+    // T-587: no recipient or name in the job; the worker resolves them through auth.
+    const welcomeJobData = {
+      template: input.template,
+      to: [] as string[],
+      cc: [] as string[],
+      bcc: [] as string[],
+      data: { userId: input.userId },
+    };
+    const requestedJobId = welcomeJobId(input.userId);
+    const welcomeJob = await queue.add(jobName, welcomeJobData, { ...opts, jobId: requestedJobId });
+    // A clash returns the EXISTING job (same check as the addressed path).
+    const welcomeDeduped =
+      typeof welcomeJob.timestamp === 'number' && Date.now() - welcomeJob.timestamp > 1000;
+    return {
+      jobId: String(welcomeJob.id ?? requestedJobId),
+      queue: queueName,
+      deduped: welcomeDeduped,
+    };
   }
 
   if (input.template === 'auth.passwordReset') {

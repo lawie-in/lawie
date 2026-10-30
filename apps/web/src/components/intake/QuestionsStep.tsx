@@ -44,7 +44,14 @@ export default function QuestionsStep({
   totalRounds: number;
   description: string;
   busy: boolean;
-  onSubmit: (answers: Array<{ question: BriefQuestion; value: Value }>) => void;
+  /**
+   * `blankKeys` (T-629, §(i)2): the questions left blank on this submit. They
+   * were asked; the service decides which count as answered.
+   */
+  onSubmit: (
+    answers: Array<{ question: BriefQuestion; value: Value }>,
+    blankKeys: string[],
+  ) => void;
   onSkip: () => void;
   onEditDescription: () => void;
 }) {
@@ -59,7 +66,7 @@ export default function QuestionsStep({
         what you can. Anything you skip becomes a visible blank in the draft.
       </p>
 
-      <div className={`${card} mt-6 flex items-center gap-3 !p-3.5`}>
+      <div className={`${card} mt-6 flex flex-wrap items-center gap-3 !p-3.5`}>
         <div className="min-w-0 flex-1">
           <p className="text-brand-muted text-xs font-semibold uppercase tracking-wider">
             {documentName ? documentName : 'Your description'}
@@ -75,10 +82,13 @@ export default function QuestionsStep({
         className={`${card} mt-4 space-y-5`}
         onSubmit={(e) => {
           e.preventDefault();
+          const given = questions
+            .map((q) => ({ question: q, value: answers[q.key] ?? '' }))
+            .filter((a) => (Array.isArray(a.value) ? a.value.length > 0 : a.value.trim() !== ''));
+          const answered = new Set(given.map((a) => a.question.key));
           onSubmit(
-            questions
-              .map((q) => ({ question: q, value: answers[q.key] ?? '' }))
-              .filter((a) => (Array.isArray(a.value) ? a.value.length > 0 : a.value.trim() !== '')),
+            given,
+            questions.filter((q) => !answered.has(q.key)).map((q) => q.key),
           );
         }}
       >

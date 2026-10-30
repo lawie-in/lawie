@@ -6,9 +6,16 @@
  * rule pack or without one.
  *
  * Everything the advocate types is held here, in memory, for the life of the
- * page. Going back and forward keeps all of it. Nothing is written to browser
- * storage, and it is dropped once the draft is written, on Cancel, and on
- * leaving the page.
+ * page. Going back and forward keeps all of it, and it is dropped once the draft
+ * is written, on Cancel, and on leaving the page.
+ *
+ * One exception (T-616/T-630, Priya/Arjun): while on the describe step, the
+ * description alone is also kept in this tab's sessionStorage under
+ * DRAFT_PREFILL_KEY, so a session that ends by itself mid-draft gives it back
+ * after the same user signs in again (lib/auth.ts keeps it for that user only
+ * and wipes it on sign-out or for anyone else). It is removed once the
+ * description has been used (the flow moves past describe) and on leaving the
+ * page in-app, unless a forced session end is under way. Nothing else is stored.
  *
  * Design: T-126 (`handoff/design/T-126-the-brief-spec.md`). Fixed wording comes
  * from the service and is printed as received.
@@ -33,12 +40,13 @@ import {
   KindSummary,
   Ledger,
   LedgerEditResult,
-  ledgerGivenKeys,
   NO_RULE_PACK,
   readFactCheckBanner,
   RenderedClause,
+  shownSoftFindings,
   Value,
   valuesAfter,
+  withAskedKeys,
   withDeclinedAnswers,
   withValue,
 } from './briefTypes';
@@ -50,6 +58,7 @@ import { EXPORT_HASH } from './draftActions';
 import DraftReadyStep from './DraftReadyStep';
 import GeneratingStep from './GeneratingStep';
 import {
+  FACT_QUESTION_CODES,
   INSUFFICIENT_INK_CODE,
   refusedStartError,
   type GenerationError,
@@ -74,6 +83,9 @@ import {
 } from '@/components/VerifyEmailPrompt';
 import { notifyCreditsChanged } from '@/hooks/useCredits';
 import { apiFetch } from '@/lib/apiFetch';
+import { DESCRIPTION_MAX, DRAFT_PREFILL_KEY, capToLimit } from '@/lib/draftPrefill';
+import { readSseEvents } from '@/lib/generateStream';
+import { signupConsentGate } from '@/lib/signupConsent';
 
 type Phase =
   | 'describe'
@@ -90,10 +102,43 @@ const EMPTY_COURT: BriefCourt = { state: null, court_type: null, court: null };
 const UNREADABLE = 'We could not read that just now. Try again, or browse document types.';
 const JSON_POST = { method: 'POST', headers: { 'Content-Type': 'application/json' } } as const;
 
-/** T-147b: one answer or edit for the fact ledger, as the update route takes it. */
+/** T-616/T-630: how long typing must pause before the description is saved to this tab. */
+const DESCRIPTION_SAVE_DELAY_MS = 500;
+/**
+ * T-616: the marker endSessionForced (lib/auth.ts) writes before it leaves the page. Same string
+ * as auth.ts's FORCED_END_SUBJECT_KEY, which is not exported; only its presence is read here.
+ */
+const FORCED_END_SUBJECT_KEY = 'lawie:forced-end-subject';
+
+/**
+ * T-616/T-630: keeps the describe step's description in this tab (capped like the textarea), or
+ * removes it when blank. The value is never logged. Never throws (private mode, full quota).
+ */
+function saveDescriptionDraft(text: string): void {
+  try {
+    if (text.trim() === '') window.sessionStorage.removeItem(DRAFT_PREFILL_KEY);
+    else window.sessionStorage.setItem(DRAFT_PREFILL_KEY, capToLimit(text, DESCRIPTION_MAX));
+  } catch {
+    // Storage unavailable: typing goes on; the text just is not kept.
+  }
+}
+
+/** T-616: a forced session end is under way (its marker is set). Never throws. */
+function forcedEndUnderway(): boolean {
+  try {
+    return window.sessionStorage.getItem(FORCED_END_SUBJECT_KEY) !== null;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * T-147b: one answer or edit for the fact ledger, as the update route takes it.
+ * T-612: several choices or a list go as an array (an empty array clears them).
+ */
 interface LedgerEditBody {
   key: string;
-  text: string;
+  text: string | string[];
   from_question?: boolean;
 }
 
@@ -153,11 +198,16 @@ function openQuestions(
   round?: 1 | 2,
 ) {
   if (!brief) return [];
-  const given = ledgerGivenKeys(ledger);
+  // T-655: the service's given set; absent, nothing is ledger-given (fails closed).
+  const given = new Set(brief.ledger_given_keys ?? []);
   const open = new Set(
     brief.items
       .filter(
-        (i) => isEmptyValue(i.value) && !i.asked_empty && (i.reask === true || !given.has(i.key)),
+        (i) =>
+          isEmptyValue(i.value) &&
+          !i.asked_empty &&
+          !i.asked_blank &&
+          (i.reask === true || !given.has(i.key)),
       )
       .map((i) => i.key),
   );
@@ -226,6 +276,7 @@ function OneFlowSteps({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ text: string; retry?: boolean } | null>(null);
   const [choices, setChoices] = useState<Array<{ kind: string; name: string }>>([]);
+  const [unranked, setUnranked] = useState(false);
 
   const [brief, setBriefState] = useState<Brief | null>(null);
   /** T-147b: the fact ledger, only when the service sends one. */
@@ -259,6 +310,8 @@ function OneFlowSteps({
   // What the next request must carry, readable without waiting for a render.
   const briefRef = useRef<Brief | null>(null);
   const valuesRef = useRef<GivenValue[]>([]);
+  /** T-629 (§(i)2): questions asked and left blank, sent as `asked_keys`. */
+  const askedKeysRef = useRef<string[]>([]);
   const courtRef = useRef<BriefCourt>(EMPTY_COURT);
   const answersRef = useRef<Array<{ question: string; answer: string }>>([]);
   const intakeId = useRef<string | undefined>(undefined);
@@ -297,6 +350,7 @@ function OneFlowSteps({
     setPreset(null);
     setMessage(null);
     setChoices([]);
+    setUnranked(false);
     setBrief(null);
     setLedger(null);
     setQuestions([]);
@@ -305,6 +359,7 @@ function OneFlowSteps({
     setGenError(null);
     setRepairing(false);
     valuesRef.current = [];
+    askedKeysRef.current = [];
     courtRef.current = EMPTY_COURT;
     answersRef.current = [];
     intakeId.current = undefined;
@@ -408,6 +463,7 @@ function OneFlowSteps({
             return;
           case 'needs_choice':
             setChoices(data.choices ?? []);
+            setUnranked(data.unranked === true);
             setPhase('choice');
             return;
           case 'no_match':
@@ -533,6 +589,7 @@ function OneFlowSteps({
             values: valuesRef.current,
             court: courtRef.current,
             description: everythingSaid(),
+            ...(askedKeysRef.current.length > 0 ? { asked_keys: askedKeysRef.current } : {}),
             // T-147b: answers and edits go to the ledger too. The brief is worked out as before.
             ...(onLedger ? { ledger_id: onLedger.ledger_id, ledger_edits: edits } : {}),
           }),
@@ -567,7 +624,8 @@ function OneFlowSteps({
   /** T-147b: the ledger edit for a value, when the ledger holds this item. */
   const ledgerEdit = (key: string, value: Value, fromQuestion: boolean): LedgerEditBody[] => {
     const l = ledgerRef.current;
-    if (!l || l.fields[key] === undefined || Array.isArray(value)) return [];
+    // T-612: an array (ticked choices, list entries) is sent too; it was dropped before.
+    if (!l || l.fields[key] === undefined) return [];
     return [{ key, text: value, ...(fromQuestion ? { from_question: true } : {}) }];
   };
 
@@ -640,14 +698,25 @@ function OneFlowSteps({
   );
 
   const answerQuestions = useCallback(
-    async (given: Array<{ question: BriefQuestion; value: Value }>) => {
+    async (given: Array<{ question: BriefQuestion; value: Value }>, blankKeys: string[] = []) => {
       const edits: LedgerEditBody[] = [];
       for (const g of given) {
         valuesRef.current = withValue(valuesRef.current, g.question.key, g.value, g.question.label);
         edits.push(...ledgerEdit(g.question.key, g.value, true));
       }
+      // T-629 (§(i)2): a question left blank was asked. Only the facts the service
+      // marks `blank_once_asked` are kept; any other blank changes nothing, as before.
+      const eligible = new Set(
+        (briefRef.current?.items ?? []).filter((i) => i.blank_once_asked).map((i) => i.key),
+      );
+      const askedBefore = askedKeysRef.current.length;
+      askedKeysRef.current = withAskedKeys(
+        askedKeysRef.current,
+        blankKeys.filter((k) => eligible.has(k)),
+      );
+      const newlyAsked = askedKeysRef.current.length > askedBefore;
       setBusy(true);
-      if (given.length > 0) await update(undefined, edits);
+      if (given.length > 0 || newlyAsked) await update(undefined, edits);
       setBusy(false);
       // The brief the service sent last (an update that was overtaken is not adopted).
       if (
@@ -673,6 +742,8 @@ function OneFlowSteps({
       // known. Confirm and "Try again" are off then too; this is the backstop.
       const cost = inkCostOf(current.kind.id ?? NO_RULE_PACK, kinds, guidedInkCost);
       if (inkCostState(cost, inkCostLoading) !== 'known') return;
+      // T-642 (AJ-642-M3/M6): no draft while the Google sign-up consent is needed.
+      if (await signupConsentGate()) return;
       // T-343: ask before leaving the brief, so focus stays on the confirm button.
       if (await privacyPrecheck('generate')) return;
       if (!retry) runId.current = undefined;
@@ -735,7 +806,7 @@ function OneFlowSteps({
             if (typeof data.cost === 'number' && Number.isFinite(data.cost) && data.cost > 0) {
               setPaywall({
                 cost: data.cost,
-                balance: data.balance?.totalInk ?? data.balance?.total ?? 0,
+                balance: data.balance?.totalInk ?? 0,
               });
               setPhase('brief');
               return;
@@ -772,64 +843,48 @@ function OneFlowSteps({
           return;
         }
 
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-        let event = '';
         let streamed = '';
         let assembled = '';
         let findings: Array<Finding & { details?: { clauseId?: string } }> = [];
-        let done: Record<string, unknown> | null = null;
+        let done = null as Record<string, unknown> | null;
+        let stopped = false as boolean;
 
-        for (;;) {
-          const { done: ended, value } = await reader.read();
-          if (ended) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() ?? '';
-          for (const line of lines) {
-            if (line.startsWith('event: ')) {
-              event = line.slice(7).trim();
-              continue;
-            }
-            if (!line.startsWith('data: ')) continue;
-            let payload: Record<string, unknown>;
-            try {
-              payload = JSON.parse(line.slice(6)) as Record<string, unknown>;
-            } catch {
-              event = '';
-              continue;
-            }
-            if (event === 'error') {
-              setGenError({
-                // T-565 W13: no server reason is shown (''), except for insufficient_ink, whose
-                // reason is the card's heading (T-521).
-                reason:
-                  payload.code === INSUFFICIENT_INK_CODE && typeof payload.reason === 'string'
-                    ? payload.reason
-                    : '',
-                retryable: payload.retryable !== false,
-                // T-521 (Arjun ruling 4): the code decides what is said about Ink.
-                source: 'error_event',
-                ...(typeof payload.code === 'string' ? { code: payload.code } : {}),
-                // T-567 item 41 / Ajay 41b: only an explicit `inkReleased: true` from the route
-                // allows "No Ink was used."; absent or anything else is not confirmed.
-                ...(payload.inkReleased === true ? { inkReleased: true } : {}),
-              });
-              return;
-            }
-            if (event === 'repair') setRepairing(true);
-            else if (event === 'warning' && Array.isArray(payload.warnings)) {
-              findings = payload.warnings as typeof findings;
-            } else if (event === 'template_sections' && Array.isArray(payload.sections)) {
-              assembled = (payload.sections as Array<{ content?: string }>)
-                .map((s) => s.content ?? '')
-                .join('\n\n');
-            } else if (event === 'done') done = payload;
-            else if (event === '' && typeof payload.text === 'string') streamed += payload.text;
-            event = '';
+        // T-705: the reader is shared with the revise dialog (lib/generateStream).
+        await readSseEvents(res.body, (event, payload) => {
+          if (event === 'error') {
+            setGenError({
+              // T-565 W13: no server reason is shown (''), except for insufficient_ink, whose
+              // reason is the card's heading (T-521), and a withheld draft's question (T-611
+              // fact_needed / fact_conflict, T-628 past_date_in_prayer), whose reason is Ajay's
+              // signed question (generationFailure FACT_QUESTION_CODES).
+              reason:
+                (payload.code === INSUFFICIENT_INK_CODE ||
+                  (typeof payload.code === 'string' && FACT_QUESTION_CODES.has(payload.code))) &&
+                typeof payload.reason === 'string'
+                  ? payload.reason
+                  : '',
+              retryable: payload.retryable !== false,
+              // T-521 (Arjun ruling 4): the code decides what is said about Ink.
+              source: 'error_event',
+              ...(typeof payload.code === 'string' ? { code: payload.code } : {}),
+              // T-567 item 41 / Ajay 41b: only an explicit `inkReleased: true` from the route
+              // allows "No Ink was used."; absent or anything else is not confirmed.
+              ...(payload.inkReleased === true ? { inkReleased: true } : {}),
+            });
+            stopped = true;
+            return false;
           }
-        }
+          if (event === 'repair') setRepairing(true);
+          else if (event === 'warning' && Array.isArray(payload.warnings)) {
+            findings = payload.warnings as typeof findings;
+          } else if (event === 'template_sections' && Array.isArray(payload.sections)) {
+            assembled = (payload.sections as Array<{ content?: string }>)
+              .map((s) => s.content ?? '')
+              .join('\n\n');
+          } else if (event === 'done') done = payload;
+          else if (event === '' && typeof payload.text === 'string') streamed += payload.text;
+        });
+        if (stopped) return;
 
         if (!done) {
           setGenError({
@@ -871,6 +926,10 @@ function OneFlowSteps({
             : missing.map((m) => m.id),
         );
         const name = current.kind.name;
+        // T-690c: the soft findings of the brief this draft was written from, as the
+        // service's `done` sends them (rebuilt there from the values it drafted). Never
+        // from the brief on screen, which can be stale after a failed update.
+        const softFindings = shownSoftFindings(done.soft_findings);
         // The draft is written. Nothing the advocate typed is kept on this page any longer.
         reset();
         // T-147d: present only for a draft written from the fact ledger.
@@ -894,6 +953,7 @@ function OneFlowSteps({
           disclaimer:
             typeof done.disclaimer === 'string' ? done.disclaimer : (factCheck?.disclaimer ?? null),
           ...(rendered ? { rendered } : {}),
+          ...(softFindings.length > 0 ? { softFindings } : {}),
           // T-545: the Ink the server says it settled, and nothing else (never the quote).
           // Absent (no settle), 0 or not a number: no chip.
           ...(typeof done.inkDebited === 'number' && done.inkDebited > 0
@@ -956,12 +1016,16 @@ function OneFlowSteps({
   // preset again after the advocate changes document. If the advocate has already
   // acted before the list arrived (typed, submitted, browsed, picked), their
   // choice stands and the preset is skipped.
+  // T-630: text the prefill put in the textarea is not "typed": the chip path brings
+  // both the text and the kind, so the preset still applies, whichever of the two
+  // effects runs first. Anything different from that text counts as typed.
   const initialKindDone = useRef(false);
+  const prefillText = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (initialKindDone.current || !initialKind || loadingKinds) return;
     initialKindDone.current = true;
-    const acted =
-      phase !== 'describe' || busy || chosenKind.current !== undefined || description.trim() !== '';
+    const typed = description.trim() !== '' && description !== prefillText.current;
+    const acted = phase !== 'describe' || busy || chosenKind.current !== undefined || typed;
     const k = acted ? undefined : kinds.find((x) => x.template_id === initialKind);
     if (k) {
       setPreset({ id: k.template_id, name: k.display_name });
@@ -979,18 +1043,67 @@ function OneFlowSteps({
   // twice, and the second read would find the key already removed. The ref survives that
   // re-run, so the first read's value is the one kept. Never submitted; never logged; not
   // applied over anything the advocate has already typed.
-  // On the chip path (`?kind=` preset) the key is still read and cleared at once, so a
-  // stale prefill can never show later, but it is not applied to the textarea.
+  // T-630: applied on the chip path (`?kind=`) too, so the text and the kind both arrive;
+  // with an unlisted kind the text shows on a plain describe. The same key brings back the
+  // description saved below after a forced session end (T-616); it replaces, never appends.
   const prefillRead = useRef(false);
   useEffect(() => {
     if (prefillRead.current) return;
     prefillRead.current = true;
     const text = takeDraftPrefill();
-    if (!text || initialKind) return;
+    if (!text) return;
+    prefillText.current = text;
     setDescription((typed) => (typed.trim() === '' ? text : typed));
-    // Mount only: `initialKind` is read as it was when the flow opened.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // T-616/T-630 (Priya/Arjun): on the describe step the description is saved to this tab
+  // under DRAFT_PREFILL_KEY, DESCRIPTION_SAVE_DELAY_MS after typing pauses, and at once when
+  // the page is hidden or left (pagehide; a reload or location.replace runs no React
+  // cleanup). A blank description removes the key. Once the flow moves past describe the
+  // description has been used and the key is removed ("Browse document types" is not past
+  // it). Declared after the prefill read, so the mount run never removes the key first.
+  const pendingSave = useRef<string | null>(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelSave = useCallback(() => {
+    if (saveTimer.current !== null) clearTimeout(saveTimer.current);
+    saveTimer.current = null;
+    pendingSave.current = null;
+  }, []);
+  const flushSave = useCallback(() => {
+    const text = pendingSave.current;
+    cancelSave();
+    if (text !== null) saveDescriptionDraft(text);
+  }, [cancelSave]);
+  useEffect(() => {
+    if (phase === 'browse') return;
+    if (phase !== 'describe') {
+      cancelSave();
+      saveDescriptionDraft('');
+      return;
+    }
+    if (saveTimer.current !== null) clearTimeout(saveTimer.current);
+    pendingSave.current = description;
+    saveTimer.current = setTimeout(flushSave, DESCRIPTION_SAVE_DELAY_MS);
+  }, [description, phase, cancelSave, flushSave]);
+  useEffect(() => {
+    const onHidden = () => {
+      if (document.visibilityState === 'hidden') flushSave();
+    };
+    window.addEventListener('pagehide', flushSave);
+    document.addEventListener('visibilitychange', onHidden);
+    return () => {
+      window.removeEventListener('pagehide', flushSave);
+      document.removeEventListener('visibilitychange', onHidden);
+      // Leaving in-app (React cleanup): the text goes, unless the session is being ended
+      // by itself (lib/auth.ts endSessionForced set its marker): then it is kept, with the
+      // latest keystrokes, for the same user's next sign-in.
+      if (forcedEndUnderway()) flushSave();
+      else {
+        cancelSave();
+        saveDescriptionDraft('');
+      }
+    };
+  }, [cancelSave, flushSave]);
 
   if (reading === 'loading') return <BriefLoading />;
   if (reading === 'failed') {
@@ -1038,6 +1151,7 @@ function OneFlowSteps({
         onChoose={handleChoose}
         onEditDescription={editDescription}
         submitting={busy}
+        unranked={unranked}
       />
     );
   }
@@ -1123,7 +1237,7 @@ function OneFlowSteps({
           totalRounds={2}
           description={description}
           busy={busy}
-          onSubmit={(given) => void answerQuestions(given)}
+          onSubmit={(given, blankKeys) => void answerQuestions(given, blankKeys)}
           onSkip={() => setPhase('brief')}
           onEditDescription={editDescription}
           suggestions={suggestedAnswers(roundQuestions, brief, ledger)}

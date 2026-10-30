@@ -71,7 +71,7 @@ interface Signed {
   question: string;
   form: string;
 }
-function signedRows(): Signed[] {
+function signedRows(packId?: string): Signed[] {
   const t190 = read(
     join(REPO, 'handoff', 'tickets', 'T-190-bail-pack-questions-for-averment-keys.md'),
   );
@@ -123,6 +123,14 @@ function signedRows(): Signed[] {
   s35.label = 'Notice to appear (Section 35 BNSS / Section 41A CrPC)';
   s35.question =
     'Before the arrest, was a notice of appearance under Section 35(3) of the BNSS or Section 41A of the CrPC served on the applicant?';
+  // T-612: Ajay re-signed the medical question (handoff/legal/T-612-bail-grounds-wording-signed.md,
+  // section (4), 26 Oct 2026), for bail_regular and bail_anticipatory only. The T-190 ticket
+  // table still has the old text.
+  const medical = rows.find((r) => r.key === 'medical_condition');
+  if (!medical) throw new Error('no medical_condition row in T-190');
+  if (packId === 'bail_regular' || packId === 'bail_anticipatory')
+    medical.question =
+      'Does the applicant have any illness, disability or medical condition you want placed before the court? If yes, name it as written in the medical papers. If not, write "None".';
   return rows;
 }
 const SIGNED = signedRows();
@@ -138,8 +146,8 @@ const FIR_DATE_SIGNED: Signed = {
   question: 'On what date was the FIR registered, or the complaint filed if there is no FIR?',
   form: 'Date',
 };
-const signedOf = (key: string) =>
-  key === 'fir_date' ? FIR_DATE_SIGNED : SIGNED.find((s) => s.key === key)!;
+const signedOf = (key: string, packId?: string) =>
+  key === 'fir_date' ? FIR_DATE_SIGNED : signedRows(packId).find((s) => s.key === key)!;
 const optionsOf = (s: Signed): string[] | null =>
   s.form.startsWith('Choices: ') ? s.form.slice(9).split('. ')[0].split(' / ') : null;
 
@@ -236,19 +244,31 @@ describe.each(PACKS)('T-190 AC1-AC3 pack file %s', (packId) => {
   const want = expectedOrder(packId);
   // fir_date first (Addendum 5 #3), then the 16 T-190 items (13 for bail_anticipatory).
   const askedWant = ['fir_date', ...want];
+  const T638_ASKED = packId === 'bail_regular' ? ['custody_since'] : [];
+  const B2_QUESTION =
+    'Since what date has the applicant been in custody (the date of arrest or surrender)?';
 
   it.each(files)(
     '%s: the asked items are the signed ones, in order, with the exact text, all optional',
     (_n, path) => {
       const fields = rawFields(path);
-      const asked = fields.filter((f) => f.ask_when_empty === true);
+      const askedAll = fields.filter((f) => f.ask_when_empty === true);
+      // T-638 (Ajay B2, 28 Oct 2026): bail_regular also asks custody_since, with the signed question.
+      const t638 = askedAll.filter((f) => f.id === 'custody_since');
+      expect(t638.map((f) => f.id)).toEqual(T638_ASKED);
+      for (const f of t638) {
+        expect(f.question).toBe(B2_QUESTION);
+        expect(f.type).toBe('date');
+        expect(f.required).toBe(false);
+      }
+      const asked = askedAll.filter((f) => f.id !== 'custody_since');
       expect(asked.map((f) => f.id)).toEqual(askedWant);
       // the T-190 items are consecutive in the file (fir_date sits with the FIR fields)
       const at = fields.findIndex((f) => f.id === want[0]);
       expect(fields.slice(at, at + want.length).map((f) => f.id)).toEqual(want);
       expect(fields.find((f) => f.id === 'fir_date')!.ask_when_empty).toBe(true);
       for (const f of asked) {
-        const s = signedOf(f.id);
+        const s = signedOf(f.id, packId);
         expect(f.label).toBe(s.label);
         expect(f.question).toBe(s.question);
         expect(f.required).toBe(false);
@@ -266,10 +286,17 @@ describe.each(PACKS)('T-190 AC1-AC3 pack file %s', (packId) => {
 
   it('the pack the service loads carries the same questions (source pack) and optional ask_when_empty items', () => {
     const cl = buildChecklist(loadRulePack(packId)!);
-    const asked = cl.filter((i) => i.askWhenEmpty);
+    const askedAll = cl.filter((i) => i.askWhenEmpty);
+    // T-638 (Ajay B2): custody_since is asked on bail_regular, with the signed question.
+    expect(askedAll.filter((i) => i.key === 'custody_since').map((i) => i.key)).toEqual(T638_ASKED);
+    for (const i of askedAll.filter((x) => x.key === 'custody_since')) {
+      expect(i.question).toBe(B2_QUESTION);
+      expect(i.required).toBe(false);
+    }
+    const asked = askedAll.filter((i) => i.key !== 'custody_since');
     expect(asked.map((i) => i.key)).toEqual(askedWant);
     for (const i of asked) {
-      expect(i.question).toBe(signedOf(i.key).question);
+      expect(i.question).toBe(signedOf(i.key, packId).question);
       expect(i.required).toBe(false);
       expect(i.label).toBe(signedOf(i.key).label);
     }
@@ -414,10 +441,13 @@ describe.each(PACKS)('T-190 buildQuestions on %s', (packId) => {
     expect([...inPack].sort((a, b) => a - b)).toEqual(inPack);
     expect(keys.indexOf(PROTECTED)).toBeLessThan(firstOpt);
     // signed order among the asked optional ones
+    // T-638 (Ajay B2): custody_since is asked on bail_regular (no custody date derived or given), in pack order.
     const want = expectedOrder(packId).filter((k) => optional.includes(k));
-    expect(optional).toEqual(want);
+    expect(optional.filter((k) => k !== 'custody_since')).toEqual(want);
+    if (packId === 'bail_regular') expect(optional).toContain('custody_since');
+    else expect(optional).not.toContain('custody_since');
     // not-asked optional items stay out
-    for (const k of ['custody_since', 'additional_context', 'next_hearing_date']) {
+    for (const k of ['additional_context', 'next_hearing_date']) {
       expect(keys).not.toContain(k);
     }
     // advocate_enrollment is optional (not asked) in bail_regular and bail_anticipatory; interim_bail
@@ -426,7 +456,7 @@ describe.each(PACKS)('T-190 buildQuestions on %s', (packId) => {
     if (enr.required) expect(keys).toContain('advocate_enrollment');
     else expect(keys).not.toContain('advocate_enrollment');
     for (const k of keys) {
-      const own = signedRows().find((s) => s.key === k);
+      const own = signedRows(packId).find((s) => s.key === k);
       const item = q.find((x) => x.key === k)!;
       if (own) {
         expect(item.question).toBe(own.question);
@@ -451,13 +481,14 @@ describe('T-190 buildQuestions: exact lists, alwaysAsk, 240-character rule, conf
       'earlier_bail_applications',
       'facts_narrative',
       'grounds_for_bail',
+      // T-638 (Ajay B2): custody_since is asked in pack order; the cap of 10 now drops recovery_status.
+      'custody_since',
       'antecedents',
       'arrest_date',
       'investigation_status',
       'applicant_sex',
       'medical_condition',
       'named_in_fir',
-      'recovery_status',
     ]);
   });
 
@@ -1047,9 +1078,15 @@ describe('T-190 pack text and averment files are unchanged where they must be', 
     // bail_regular and bail_anticipatory re-pinned for T-334 (Ajay, T-334 Addendum 1, signed 9b484ee).
     // T-245a: re-pinned (Ajay, Addenda 1 #9 and 2 #1): the two s35 entries carry the new label
     // and {{notice_provision}}. The develop_staging copy is still the T-334 file until this merges.
-    bail_regular: 'df163457bd78cd19698d968d8e80a278fd738590aa779018c6ab25202f1fa923',
+    bail_regular: '8ee0a7569fe463b93ab5d0c951b6cf4e8562a3c389fd49af1cd06e41b824b26f',
     interim_bail: '8951ebda37020b9527672013595fabc1c1a7c80470d8ceade8f33c4883d3bf66',
     bail_before_magistrate: '6519fdc6a96efbe03d98f71f6f67ab55633e9634e28b6dbffe321e72c50efa56',
+    bail_anticipatory: '4173d669e03be93ec6d882bf4b0fde28cd68ceed1274f50347f6914e9e830fc6',
+  };
+  // T-612: re-pinned (Ajay, 27 Oct 2026) with the G2 and G4 averments; until this merges, develop_staging
+  // still holds the T-245a files below.
+  const BEFORE_T612: Record<string, string> = {
+    bail_regular: 'df163457bd78cd19698d968d8e80a278fd738590aa779018c6ab25202f1fa923',
     bail_anticipatory: '270a841d242ef26fc74859cfa94b4bf6feb414bbf0a01ffb32f1a7ae8caa83de',
   };
   const BEFORE_T245A: Record<string, string> = {
@@ -1074,7 +1111,9 @@ describe('T-190 pack text and averment files are unchanged where they must be', 
         upstream = null; // no such ref here (shallow clone): the pinned hash stands
       }
       if (upstream) {
-        expect([PINNED[id], BEFORE_T245A[id]].filter(Boolean)).toContain(sha(upstream));
+        expect([PINNED[id], BEFORE_T245A[id], BEFORE_T612[id]].filter(Boolean)).toContain(
+          sha(upstream),
+        );
       }
     },
   );

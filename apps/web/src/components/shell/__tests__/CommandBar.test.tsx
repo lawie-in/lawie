@@ -24,6 +24,17 @@ const ITEMS = [
 ];
 
 const input = () => q('[role=combobox]') as HTMLInputElement;
+const hover = (el: Element | null) =>
+  act(() => {
+    el!.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, cancelable: true }));
+  });
+// React derives onMouseLeave from mouseout with a relatedTarget outside the element.
+const leaveList = () =>
+  act(() => {
+    q('[role=listbox]')!.dispatchEvent(
+      new MouseEvent('mouseout', { bubbles: true, relatedTarget: document.body }),
+    );
+  });
 const options = () => qa('[role=option]').map((o) => o.textContent);
 
 beforeEach(() => stubMatchMedia());
@@ -119,9 +130,34 @@ describe('CommandBar keyboard', () => {
     press(input(), { key: 'ArrowDown' });
     press(input(), { key: 'Enter' });
     expect(onSelect).toHaveBeenCalledTimes(1);
-    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'notice' }));
+    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'notice' }), 'legal');
     expect(onSubmit).not.toHaveBeenCalled();
     expect(input().getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('T-630: a click pick passes the trimmed typed text as the second argument', () => {
+    const { onSelect } = setup();
+    typeInto(input(), '  legal notice for rent  ');
+    click(qa('[role=option]')[0]);
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'notice' }),
+      'legal notice for rent',
+    );
+  });
+
+  it('T-630: a pick with the input empty calls onSelect with exactly one argument', () => {
+    const { onSelect } = setup();
+    act(() => input().focus());
+    click(qa('[role=option]')[1]);
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect.mock.calls[0]).toHaveLength(1);
+    // Whitespace-only counts as empty too.
+    onSelect.mockClear();
+    typeInto(input(), '   ');
+    click(qa('[role=option]')[0]);
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect.mock.calls[0]).toHaveLength(1);
   });
 
   it('Enter with nothing highlighted submits the trimmed text via the form', () => {
@@ -188,6 +224,93 @@ describe('CommandBar Draft button', () => {
     click(q('button[type=submit]'));
     expect(onSubmit).toHaveBeenCalledWith('plaint for recovery');
     expect(input().getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('T-630: Draft with nothing highlighted calls onSubmit with exactly one argument', () => {
+    const { onSubmit } = setup();
+    typeInto(input(), 'plaint for recovery');
+    click(q('button[type=submit]'));
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit.mock.calls[0]).toHaveLength(1);
+    expect(onSubmit.mock.calls[0][0]).toBe('plaint for recovery');
+  });
+
+  it('T-630: Draft with an option highlighted passes that option as the second argument', () => {
+    const { onSubmit, onSelect } = setup();
+    typeInto(input(), 'legal');
+    press(input(), { key: 'ArrowDown' });
+    click(q('button[type=submit]'));
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit).toHaveBeenCalledWith('legal', expect.objectContaining({ id: 'notice' }));
+  });
+
+  it('T-630: after Escape clears the highlight, Draft passes no option', () => {
+    const { onSubmit } = setup();
+    typeInto(input(), 'legal');
+    press(input(), { key: 'ArrowDown' });
+    press(input(), { key: 'Escape' });
+    click(q('button[type=submit]'));
+    expect(onSubmit.mock.calls[0]).toHaveLength(1);
+  });
+
+  it('T-630: hover an option, pointer leaves the list, Draft passes text only (one argument)', () => {
+    const { onSubmit, onSelect } = setup();
+    typeInto(input(), 'legal');
+    hover(qa('[role=option]')[0]);
+    expect(input().getAttribute('aria-activedescendant')).toBe(qa('[role=option]')[0].id);
+    leaveList();
+    expect(input().getAttribute('aria-activedescendant')).toBeNull();
+    expect(qa('[role=option]')[0].getAttribute('aria-selected')).toBe('false');
+    click(q('button[type=submit]'));
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit.mock.calls[0]).toHaveLength(1);
+    expect(onSubmit.mock.calls[0][0]).toBe('legal');
+  });
+
+  it('T-630: while the pointer is still over an option, Draft passes that option', () => {
+    const { onSubmit } = setup();
+    typeInto(input(), 'legal');
+    hover(qa('[role=option]')[0]);
+    click(q('button[type=submit]'));
+    expect(onSubmit).toHaveBeenCalledWith('legal', expect.objectContaining({ id: 'notice' }));
+  });
+
+  it('T-630: ArrowDown highlight, then Draft with no hover, passes the option', () => {
+    const { onSubmit } = setup();
+    typeInto(input(), 'legal');
+    press(input(), { key: 'ArrowDown' });
+    click(q('button[type=submit]'));
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit).toHaveBeenCalledWith('legal', expect.objectContaining({ id: 'notice' }));
+  });
+
+  it('T-630: hover then leave, then Enter submits the text (nothing highlighted, not a pick)', () => {
+    const { onSubmit, onSelect } = setup();
+    typeInto(input(), 'legal');
+    hover(qa('[role=option]')[0]);
+    leaveList();
+    const ev = press(input(), { key: 'Enter' });
+    expect(ev.defaultPrevented).toBe(false);
+    expect(onSelect).not.toHaveBeenCalled();
+    act(() => {
+      (q('form') as HTMLFormElement).requestSubmit();
+    });
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit.mock.calls[0]).toEqual(['legal']);
+  });
+
+  it('T-630: keyboard still works after a hover and leave (ArrowDown starts from the first option)', () => {
+    setup();
+    typeInto(input(), 'l');
+    hover(qa('[role=option]')[0]);
+    leaveList();
+    press(input(), { key: 'ArrowDown' });
+    expect(input().getAttribute('aria-activedescendant')).toBe(qa('[role=option]')[0].id);
+    press(input(), { key: 'Escape' });
+    expect(input().getAttribute('aria-expanded')).toBe('false');
+    expect(input().getAttribute('aria-activedescendant')).toBeNull();
   });
 
   it('submitting disables Draft and blocks submit', () => {

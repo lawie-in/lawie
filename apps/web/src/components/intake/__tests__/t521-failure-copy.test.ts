@@ -14,6 +14,16 @@ import {
   takeDraftPrefill,
 } from '../initialQuery';
 
+import { DESCRIPTION_MAX } from '@/lib/draftPrefill';
+
+// A realistic matter text of exactly `n` characters that ends mid-sentence, so a cut is visible.
+const matterText = (n: number): string => {
+  const base =
+    'The client is a sole earner and was arrested after the chargesheet was filed, the sureties are ready and the magistrate refused bail. ';
+  const tail = ' he is the';
+  return base.repeat(Math.ceil(n / base.length)).slice(0, n - tail.length) + tail;
+};
+
 describe('generationFailureCopy (T-521, T-567 item 41)', () => {
   it('signed strings are exactly the ruled ones', () => {
     expect(DRAFT_DID_NOT_FINISH).toBe('The draft did not finish.');
@@ -149,16 +159,44 @@ describe('initialPrefillFrom (T-521 round 3)', () => {
     expect(initialPrefillFrom('  bail for my client  ')).toBe('bail for my client'));
   it('keeps inner whitespace and newlines', () =>
     expect(initialPrefillFrom('a  b\nc')).toBe('a  b\nc'));
-  it('caps at 500, with the 500/501 boundary', () => {
-    expect(INITIAL_PREFILL_MAX).toBe(500);
-    expect(initialPrefillFrom('x'.repeat(900))).toHaveLength(500);
-    expect(initialPrefillFrom('y'.repeat(500))).toHaveLength(500);
-    expect(initialPrefillFrom('y'.repeat(501))).toHaveLength(500);
+  it('caps at the shared DESCRIPTION_MAX, with the MAX/MAX+1 boundary (T-608, was 500)', () => {
+    const M = INITIAL_PREFILL_MAX;
+    expect(M).toBe(DESCRIPTION_MAX);
+    expect(initialPrefillFrom('x'.repeat(M + 900))).toHaveLength(M);
+    expect(initialPrefillFrom('y'.repeat(M))).toBe('y'.repeat(M));
+    expect(initialPrefillFrom('y'.repeat(M + 1))).toBe('y'.repeat(M));
+    expect(initialPrefillFrom('y'.repeat(M - 1))).toBe('y'.repeat(M - 1));
   });
-  it('trims before capping', () =>
-    expect(initialPrefillFrom(`   ${'z'.repeat(600)}`)).toBe('z'.repeat(500)));
-  it('does not end on whitespace after the cut', () =>
-    expect(initialPrefillFrom(`${'a'.repeat(499)} ${'b'.repeat(10)}`)).toBe('a'.repeat(499)));
+  it('a 500- or 501-character value is no longer cut (T-608)', () => {
+    expect(initialPrefillFrom('q'.repeat(500))).toHaveLength(500);
+    expect(initialPrefillFrom('q'.repeat(501))).toHaveLength(501);
+  });
+  it('trims before capping', () => {
+    const M = INITIAL_PREFILL_MAX;
+    expect(initialPrefillFrom(`   ${'z'.repeat(M + 100)}`)).toBe('z'.repeat(M));
+    expect(initialPrefillFrom(`   ${'z'.repeat(M)}   `)).toBe('z'.repeat(M));
+  });
+  // T-608: this test's meaning changed. It used to pin the removed trailing trim (a cut ending on
+  // a space lost it, so 500 became 499). Now whitespace at the cut is kept and the result is
+  // exactly MAX long.
+  it('keeps whitespace at the cut: no second trim, so the result is exactly MAX long', () => {
+    const M = INITIAL_PREFILL_MAX;
+    const got = initialPrefillFrom(`${'a'.repeat(M - 1)} ${'b'.repeat(10)}`);
+    expect(got).toBe(`${'a'.repeat(M - 1)} `);
+    expect(got).toHaveLength(M);
+  });
+  it('surrogate pairs are counted in UTF-16 units and never split', () => {
+    const M = INITIAL_PREFILL_MAX;
+    // pair would straddle unit M: dropped
+    expect(initialPrefillFrom(`${'a'.repeat(M - 1)}😀tail`)).toBe('a'.repeat(M - 1));
+    // pair ends exactly at unit M: kept
+    expect(initialPrefillFrom(`${'a'.repeat(M - 2)}😀tail`)).toBe(`${'a'.repeat(M - 2)}😀`);
+  });
+  it('a 657-character description comes back whole (T-608 AC3)', () => {
+    const text = matterText(657);
+    expect(initialPrefillFrom(text)).toBe(text);
+    expect(initialPrefillFrom(`  ${text}\n`)).toBe(text);
+  });
   it.each([[''], ['   '], ['\n\t ']])('empty or whitespace %j is undefined', (raw) =>
     expect(initialPrefillFrom(raw)).toBeUndefined(),
   );
@@ -194,8 +232,19 @@ describe('takeDraftPrefill (T-521 round 3)', () => {
     expect(s.order).toEqual([`get:${DRAFT_PREFILL_KEY}`, `remove:${DRAFT_PREFILL_KEY}`]);
   });
 
-  it('caps the text it returns', () => {
-    expect(takeDraftPrefill(fake('k'.repeat(900)))).toHaveLength(500);
+  it('caps the text it returns at DESCRIPTION_MAX', () => {
+    expect(takeDraftPrefill(fake('k'.repeat(DESCRIPTION_MAX + 900)))).toHaveLength(DESCRIPTION_MAX);
+    expect(takeDraftPrefill(fake('k'.repeat(DESCRIPTION_MAX + 1)))).toHaveLength(DESCRIPTION_MAX);
+    expect(takeDraftPrefill(fake('k'.repeat(DESCRIPTION_MAX)))).toHaveLength(DESCRIPTION_MAX);
+  });
+
+  it('a 657-character stored description is returned whole, and the key is removed (T-608 AC3)', () => {
+    const text = matterText(657);
+    const s = fake(text);
+    const got = takeDraftPrefill(s);
+    expect(got).toHaveLength(657);
+    expect(got).toBe(text);
+    expect(s.removeItem).toHaveBeenCalledWith(DRAFT_PREFILL_KEY);
   });
 
   it('no key: undefined and nothing removed', () => {

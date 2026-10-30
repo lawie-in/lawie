@@ -1,3 +1,8 @@
+// T-663: a real DSN in the shell must never reach a test (it leaked into a transcript once).
+if (process.env.SENTRY_DSN !== undefined) {
+  throw new Error('SENTRY_DSN set — unset it, see CLAUDE.md');
+}
+
 process.env.NODE_ENV = 'test';
 process.env.PORT = '4003';
 process.env.MONGO_URI = 'mongodb://placeholder:27017/test';

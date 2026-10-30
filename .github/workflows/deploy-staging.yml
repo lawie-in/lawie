@@ -1,5 +1,5 @@
 # Automated staging deployment is disabled.
-# Deploy manually using deploy.sh.
+# Deploy manually on the box with scripts/deploy-local.sh (see docs/DEPLOY.md).
 
 name: Deploy — Staging
 

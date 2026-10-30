@@ -24,7 +24,7 @@ import { _clearAppSettingsCache } from '../services/app-settings.service';
 import { getCatalogue } from '../services/intake.service';
 import { buildMatchUserPrompt, MATCH_SYSTEM_PROMPT } from '../services/intake.prompts';
 import { loadTemplateConfig } from '../services/template-engine.service';
-import { SdkStreamParams, sdkAnswer } from './sdkStream';
+import { SdkStreamParams, sdkAnswer, systemText } from './sdkStream';
 
 const mockMessagesStream = jest.fn();
 jest.mock('@anthropic-ai/sdk', () =>
@@ -168,14 +168,14 @@ describe('T-482 D: the prompts', () => {
   const SIGNED_SENTENCE =
     '- A catalogue line may end with "match terms": those terms alone are not enough to choose that template when the description also has divorce, Domestic Violence Act (DV Act), Hindu Adoptions and Maintenance Act (HAMA), custody or guardianship words; in that case use confidence "medium" and list it together with those templates in alternatives, so the advocate chooses.';
 
-  it('the system prompt has the signed sentence (59d26051) once, and without it is the pre-change prompt', () => {
+  it('the system prompt has the signed sentence (59d26051) once, and without it is the prompt before this line (T-610 bail lines included)', () => {
     const line = `${SIGNED_SENTENCE}\n`;
     expect(MATCH_SYSTEM_PROMPT.split(line)).toHaveLength(2);
     // the old wording ("... (DV Act) or Hindu Adoptions ...") is gone
     expect(MATCH_SYSTEM_PROMPT).not.toContain('(DV Act) or Hindu');
     expect(MATCH_SYSTEM_PROMPT).toContain('custody or guardianship words');
     expect(createHash('sha256').update(MATCH_SYSTEM_PROMPT.replace(line, '')).digest('hex')).toBe(
-      '9b5d2d0f92602a15952bb698b13476e6b79cce6a0968e4c06d92503df1cf83df',
+      '8b3e0e769825f31bad96e0495e18db3e27d459151d86fadbc63eda3aa9cb70f3',
     );
   });
 
@@ -237,14 +237,21 @@ describe('T-482 E: POST /intake routing, mocked model', () => {
       .mockResolvedValue(sdkAnswer(JSON.stringify({ fields: [] }), 900, 100));
     await request(app).post('/intake').set(headers()).send({ description: DESC, language: 'en' });
     const p = mockMessagesStream.mock.calls[0][0] as SdkStreamParams;
-    const user = p.messages.map((m) => m.content).join('\n');
+    // T-681b: the user turn is two text blocks (catalogue, then the description); read their text
+    const user = p.messages
+      .map((m) =>
+        typeof m.content === 'string'
+          ? m.content
+          : (m.content as unknown as Array<{ text: string }>).map((b) => b.text).join(''),
+      )
+      .join('\n');
     expect(user).toContain(DESC);
     expect(user).toContain(
       `${MAINT} | Maintenance Application (s.144 BNSS) | family | ${SHORT_DESCRIPTION} | match terms: `,
     );
     expect(user).toContain('bharan-poshan');
     expect(user).toContain('भरण-पोषण');
-    expect(p.system).toContain('Hindu Adoptions and Maintenance Act (HAMA)');
+    expect(systemText(p.system)).toContain('Hindu Adoptions and Maintenance Act (HAMA)');
   });
 
   it('a high-confidence maintenance match reaches the pack', async () => {

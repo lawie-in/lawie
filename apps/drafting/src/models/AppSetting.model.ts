@@ -2,10 +2,16 @@
  * AppSetting — runtime-configurable key/value store
  *
  * Used for settings that should be changeable WITHOUT a code deploy or env
- * rotation. Today's keys:
+ * rotation. Today's AI keys (T-684, one model and one effort per role; the list
+ * lives in MODEL_ROLE_REGISTRY in services/app-settings.service.ts):
  *
- *   ai.drafting_model  — Anthropic model id for the main bail/notice/petition body
- *   ai.preflight_model — Anthropic model id for the SCRUM-69 verifier layer
+ *   ai.model.<role>  — Anthropic model id per role: matcher, extractor, drafter,
+ *                      fact_checker, legal_reviewer, language
+ *   ai.effort.<role> — low | medium | high | xhigh | max per role (optional)
+ *
+ * Deprecated, still read for one release when the role key is unset:
+ *   ai.drafting_model -> ai.model.drafter, ai.intake_model -> ai.model.extractor,
+ *   ai.preflight_model -> ai.model.fact_checker (scripts/migrate-model-settings.ts copies them).
  *
  * Source of truth is Mongo. The drafting service reads via the AppSettings
  * service (in-memory TTL cache) so we don't hit Mongo on every LLM call. The

@@ -19,3 +19,7 @@ If the database update fails after the privacy accept has taken the session, the
 ## Arjun (12 Oct 2026): keep the order (option A)
 
 Keep take-session → update → createSession, same as `/refresh`. Reason: the acceptance is a consent record, so it is written only by a request whose session we have just proved live and consumed; reordering (B) lets a revoked session record consent in a race. The cost of A is a rare sign-out after a DB failure, which is safe. Add the comment and the test (AC1-2) as the ticket says.
+
+
+## Change (Arjun, 27 Oct 2026, T-616b)
+The single-use rule now reads: same pair inside the 30 s grace window, 401 after. Privacy re-accept uses the same grace rotation as /refresh.

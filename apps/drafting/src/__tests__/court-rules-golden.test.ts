@@ -79,6 +79,9 @@ const COURTS = [
   'up_district',
 ];
 
+/** T-689c: the court rules of a High Court (their annexures pack keeps the Synopsis). */
+const HIGH_COURT_RULES = new Set(['allahabad_hc', 'delhi_hc', 'jharkhand_hc', 'patna_hc']);
+
 const TEMPLATES = [
   'bail_anticipatory',
   'bail_regular',
@@ -255,13 +258,53 @@ describe('court-rules-golden — annexures pack HTML per court', () => {
         return Promise.resolve(undefined);
       });
 
+      // T-689c (AJ-689c-a, Ajay): the Synopsis (Annexure B) is for a High Court
+      // and a pack not on the deny list. The four High Court rules keep it, so
+      // their snapshots keep their Synopsis; the trial courts do not get it.
       await buildAnnexuresPack({
         formData: { ...FIXED_FORM_DATA, court_id: courtId, template_id: 'bail_anticipatory' },
         bodyParaCount: 10,
         advocateName: 'GOLDEN_ADV',
+        rulePackId: 'bail_anticipatory',
+        courtType: HIGH_COURT_RULES.has(courtId) ? 'high_court' : 'district_court',
       });
 
       expect(captured).toMatchSnapshot();
     });
   }
+});
+
+// ── T-700 (AJ-700, AJ-700a (8)): the civil set, one written-statement golden ──
+
+describe('court-rules-golden — T-700 written statement annexures pack HTML', () => {
+  it('a written statement before a High Court renders its civil annexure set deterministically', async () => {
+    const puppeteer = jest.requireMock('puppeteer') as {
+      __mockPage: { setContent: jest.Mock };
+    };
+    let captured = '';
+    puppeteer.__mockPage.setContent.mockImplementationOnce((html: string) => {
+      captured = html;
+      return Promise.resolve(undefined);
+    });
+
+    await buildAnnexuresPack({
+      formData: {
+        template_id: 'written_statement',
+        state: 'jharkhand',
+        court_type: 'high_court',
+        court_id: 'jharkhand_hc',
+        plaintiff_name: 'GOLDEN_PLAINTIFF',
+        defendant_name: 'GOLDEN_DEFENDANT',
+        client_name: 'GOLDEN_DEFENDANT',
+        client_role: 'defendant',
+        place: 'RANCHI',
+      },
+      bodyParaCount: 10,
+      advocateName: 'GOLDEN_ADV',
+      rulePackId: 'written_statement',
+      courtType: 'high_court',
+    });
+
+    expect(captured).toMatchSnapshot();
+  });
 });

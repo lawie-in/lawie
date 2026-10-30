@@ -43,6 +43,8 @@ import {
   subscriptionDescription,
   topupDescription,
 } from './invoice.service';
+import { paymentEntityOf, recordPaymentSafely, recordRefundSafely } from './payment-record.service';
+import { reverseInkForRefund } from './refund-ink.service';
 
 /** T-444: statuses whose checkout is unfinished; createSubscription reuses them. */
 const CHECKOUT_STATUSES: SubscriptionStatus[] = ['created', 'authenticated'];
@@ -2215,6 +2217,61 @@ function restoreClaim(
   };
 }
 
+/**
+ * T-646 (Arjun, 3b g): one atomic, only-if-empty stamp of a charge's payment id on its
+ * cycle's sub_renewal grant row. A set field is never changed. Never throws; logs ids only.
+ */
+async function stampLostClaimGrant(
+  userId: mongoose.Types.ObjectId,
+  subId: string,
+  cycleKey: Record<string, unknown>,
+  razorpayPaymentId: string,
+): Promise<void> {
+  const db = mongoose.connection.db;
+  if (!db) return;
+  try {
+    const stamped = await db.collection('inkledger').findOneAndUpdate(
+      {
+        userId,
+        reason: 'sub_renewal',
+        'metadata.razorpaySubscriptionId': subId,
+        ...cycleKey,
+        'metadata.razorpayPaymentId': { $in: [null] },
+      },
+      { $set: { 'metadata.razorpayPaymentId': razorpayPaymentId } },
+    );
+    logger.info(
+      { subId, razorpayPaymentId, stamped: stamped !== null },
+      'lost-claim charge: grant row payment id back-fill',
+    );
+  } catch (err) {
+    logger.error(
+      { subId, razorpayPaymentId, errName: err instanceof Error ? err.name : 'unknown' },
+      'lost-claim charge: grant row payment id back-fill failed',
+    );
+  }
+}
+
+/**
+ * T-646 (Arjun round 3, 3): the credit note for a refund could not be recorded. One Sentry
+ * event per refund, ids and the error class only; request and user stripped.
+ */
+function reportCreditNoteFailed(refundId: string, razorpayPaymentId: string, err: unknown): void {
+  const errorName = err instanceof Error ? err.name : 'unknown';
+  logger.error({ refundId, razorpayPaymentId, errName: errorName }, 'credit note record failed');
+  Sentry.withScope((scope) => {
+    scope.setSDKProcessingMetadata({ normalizedRequest: undefined, ipAddress: undefined });
+    scope.addEventProcessor((event) => {
+      delete event.request;
+      delete event.user;
+      return event;
+    });
+    scope.setFingerprint(['billing-credit-note-record-failed', refundId]);
+    scope.setTags({ refundId, razorpayPaymentId, errorName });
+    Sentry.captureMessage('Billing: credit note record failed on refund', 'error');
+  });
+}
+
 export function verifyWebhookSignature(rawBody: Buffer, signature: unknown): boolean {
   const expectedSignature = crypto
     .createHmac('sha256', env.RAZORPAY_WEBHOOK_SECRET)
@@ -2330,6 +2387,16 @@ export async function handleWebhookEvent(
         }
       }
 
+      // T-646 (Arjun ruling 3): the payment-history row, AFTER the grant and its
+      // claim. Own try/catch inside, idempotent on the payment id; never throws, so
+      // the webhook response and the grant order are unchanged.
+      await recordPaymentSafely(payload, {
+        userId: notes.user_id,
+        kind: 'topup',
+        inkUnits: sku.ink * 2,
+        topupSkuId: sku.id,
+      });
+
       // T-436: one GST invoice per captured top-up payment, keyed on the payment
       // id (order.paid and payment.captured carry the same one). Issued even when
       // the grant returned 0, so a retry after a crash finishes it. The amount is
@@ -2364,12 +2431,39 @@ export async function handleWebhookEvent(
       typeof refund.amount === 'number' &&
       (refund.status === undefined || refund.status === 'processed')
     ) {
-      await issueCreditNoteOnRefund({
+      // Arjun round 3 (3): recording the credit note can throw (invoice.service.ts
+      // issueCreditNoteOnRefund -> recordCreditNoteForRefund). The Ink reversal and the
+      // payment row still run; the error is reported (ids only) and rethrown at the end, so
+      // the webhook still 500s and Razorpay retries the credit note as before (the reversal
+      // is idempotent on refund:<refundId>).
+      let creditNoteErr: unknown = null;
+      try {
+        await issueCreditNoteOnRefund({
+          refundId: refund.id,
+          paymentId: refund.payment_id,
+          amount: refund.amount,
+          processedAt: fromUnix(refund.created_at),
+        });
+      } catch (err) {
+        creditNoteErr = err;
+        reportCreditNoteFailed(refund.id, refund.payment_id, err);
+      }
+      // T-646 (Vikram 5): the refund takes back its share of the payment's Ink,
+      // never below zero, idempotent on refund:<refundId>. Throws (500, Razorpay
+      // retries) only when the reversal could not run; the retry reverses once.
+      await reverseInkForRefund({
         refundId: refund.id,
+        razorpayPaymentId: refund.payment_id,
+        refundPaise: refund.amount,
+        paymentEntity: paymentEntityOf(payload),
+      });
+      // T-646 (Arjun ruling 3): the payment-history row. Never throws.
+      await recordRefundSafely(payload, {
+        id: refund.id,
         paymentId: refund.payment_id,
         amount: refund.amount,
-        processedAt: fromUnix(refund.created_at),
       });
+      if (creditNoteErr) throw creditNoteErr;
     } else {
       logger.warn({ event }, 'Webhook: refund.processed without a usable refund entity');
     }
@@ -2382,7 +2476,15 @@ export async function handleWebhookEvent(
     | undefined;
   const subId = subPayload?.id as string | undefined;
 
-  if (!subId) return;
+  if (!subId) {
+    // T-646 (Vikram 1-2): a top-up payment that failed, or was attempted and is not
+    // settled yet, has no subscription entity. Recorded (attributed through the order
+    // row or notes) and nothing else; never throws, the response is unchanged.
+    if (event === 'payment.failed' || event === 'payment.authorized') {
+      await recordPaymentSafely(payload);
+    }
+    return;
+  }
 
   const sub = await Subscription.findOne({ razorpaySubscriptionId: subId });
   if (!sub) {
@@ -2617,11 +2719,30 @@ async function applySubscriptionEvent(
         }
       }
 
+      const chargeEntityId = paymentEntityOf(payload)?.id;
+      const chargePaymentId =
+        typeof chargeEntityId === 'string' && chargeEntityId ? chargeEntityId : undefined;
       if (planSku && !isNewCycle) {
         logger.info(
           { subId, event, paidCount },
           'subscription cycle already granted, no second grant',
         );
+        // T-646 (Arjun, 3b g): this charge lost the cycle claim (the grant went to a sibling
+        // delivery, e.g. subscription.activated without a payment entity). Stamp this charge's
+        // payment id on THAT cycle's grant row, only if it has none, so a refund of this charge
+        // finds the grant by payment id. Keyed like the claim: paid_count, else current_start.
+        // paid_count 0 granted nothing: no stamp. After the claim; nothing reordered.
+        const cycleKey =
+          typeof paidCount === 'number'
+            ? paidCount > 0
+              ? { 'metadata.paidCount': paidCount }
+              : null
+            : currentStart
+              ? { 'metadata.periodStart': new Date(currentStart * 1000) }
+              : null;
+        if (event === 'subscription.charged' && chargePaymentId && cycleKey) {
+          await stampLostClaimGrant(sub.userId, subId, cycleKey, chargePaymentId);
+        }
       } else if (planSku) {
         let grantFailed = false;
         try {
@@ -2633,6 +2754,13 @@ async function applySubscriptionEvent(
             planRenewsAt: chargeAt ? new Date(chargeAt * 1000) : undefined,
             razorpaySubscriptionId: subId,
             amountInr: planSku.priceInr,
+            // T-646 (Arjun final, 3b): the charge that won this claim, for refund attribution.
+            // Absent when the winning event carries no payment entity (e.g. an activated
+            // event without one); that grant is then reversible only through its Payment row.
+            ...(chargePaymentId ? { razorpayPaymentId: chargePaymentId } : {}),
+            // T-646 (Arjun, 3b g): the same cycle key the claim above used.
+            ...(typeof paidCount === 'number' ? { paidCount } : {}),
+            ...(currentStart ? { periodStart: new Date(currentStart * 1000) } : {}),
           });
         } catch (err) {
           grantFailed = true;
@@ -2704,6 +2832,23 @@ async function applySubscriptionEvent(
           'subscription.charged with no matching SKU — granted plan=pro without ink',
         );
       }
+
+      // T-646 (Arjun ruling 3): the payment-history row for this charge, AFTER the
+      // grant and its claim (T-399 / T-415 order unchanged). Only when the event
+      // carries a payment entity. Never throws; idempotent on the payment id.
+      // Reached on every branch above: the won claim, the lost-claim / replay
+      // ("already granted") branch and the no-SKU branch, so a replay writes a row
+      // an earlier delivery failed to write.
+      await recordPaymentSafely(payload, {
+        userId: sub.userId.toString(),
+        kind: 'plan',
+        // Arjun round 3 (1): Ink only when THIS delivery's claim made a new cycle (isNewCycle).
+        // A lost claim / replay or paid_count 0 writes 0, so a refund of it goes through the
+        // ledger confirmation by payment id (confirmedPlanGrantUnits) instead.
+        inkUnits: planSku && isNewCycle ? planSku.inkPerCycle * 2 : 0,
+        razorpaySubscriptionId: subId,
+        ...(planSku ? { planId: planSku.id } : {}),
+      });
 
       // T-518 (Arjun): report-only. Reached only once this cycle's claim was
       // won and its grant (if any) went through, so a replay (lost claim, or a
@@ -2879,6 +3024,12 @@ async function applySubscriptionEvent(
 
     case 'payment.failed': {
       logger.warn({ userId: sub.userId, subId }, 'Payment failed for subscription');
+      // T-646 (Vikram 1): a failed plan payment is shown (it was attempted). Never throws.
+      await recordPaymentSafely(payload, {
+        userId: sub.userId.toString(),
+        kind: 'plan',
+        razorpaySubscriptionId: subId,
+      });
       break;
     }
 

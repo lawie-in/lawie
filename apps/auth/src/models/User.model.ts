@@ -25,7 +25,12 @@ export type ReferralStatus = 'applied' | 'not_applied';
  * T-343 (Ajay §4) — how the current privacyVersion was accepted. 'signin' (Ajay, round 5): the
  * T-234 Google consent stamp on a linked or returning account set privacyVersion at sign-in.
  */
-export type PrivacyAcceptedVia = 'signup' | 'reaccept' | 'signin';
+export type PrivacyAcceptedVia = 'signup' | 'reaccept' | 'signin' | 'google_confirm';
+/**
+ * T-642 (AJ-642-M5) — the consent text a 'google_confirm' row records: the AJ-517-M16 box line.
+ * Change it only when Ajay signs a new wording for that line.
+ */
+export const SIGNUP_CONSENT_TEXT_VERSION = 'AJ-517-M16';
 /** T-358 — which email started the unverified-account clock. */
 export type FirstVerifySentVia = 'verify' | 'notice';
 
@@ -34,13 +39,23 @@ export interface IPrivacyAcceptance {
   version: string;
   acceptedAt: Date;
   via: PrivacyAcceptedVia;
+  /** T-642 (AJ-642-M5): on 'google_confirm' rows only, the Terms version shown in the M16 box. */
+  termsVersion?: string;
+  /** T-642 (AJ-642-M5): on 'google_confirm' rows only, SIGNUP_CONSENT_TEXT_VERSION. */
+  consentTextVersion?: string;
 }
 
 const PrivacyAcceptanceSchema = new Schema<IPrivacyAcceptance>(
   {
     version: { type: String, required: true, trim: true },
     acceptedAt: { type: Date, required: true },
-    via: { type: String, enum: ['signup', 'reaccept', 'signin'], required: true },
+    via: {
+      type: String,
+      enum: ['signup', 'reaccept', 'signin', 'google_confirm'],
+      required: true,
+    },
+    termsVersion: { type: String, trim: true },
+    consentTextVersion: { type: String, trim: true },
   },
   { _id: false },
 );
@@ -141,13 +156,14 @@ export interface IUser extends Document {
   // ── SCRUM-73 / SCRUM-59 — credit system (founder-authorised 2026-05-12) ──
   // Three credit buckets, consumed in priority order: topup → earned → subscription.
   subscriptionCredits: number; // Granted on plan renewal. Lapses on monthly/yearly cycle.
-  earnedCredits: number; // From daily login + rating bonuses. Permanent.
+  earnedCredits: number; // Legacy: signup/login/rating accrual stopped in T-652. Kept for history; hidden.
   topupCredits: number; // One-time top-up purchases. Permanent.
   planTier: 'free' | 'practice' | 'firm';
   billingCycle: 'none' | 'monthly' | 'yearly';
   planRenewsAt?: Date;
-  lastLoginBonusAt?: Date; // Used by daily-login-bonus dedupe
+  lastLoginBonusAt?: Date; // Legacy: no longer written (T-652). Kept for history.
   signupBonusGrantedAt?: Date; // Idempotency guard for signup bonus (SCRUM-100)
+  welcomeQueuedAt?: Date | null; // T-587: once-only guard for the welcome email
 
   // T-563 — set only by the develop-only test sign-up bypass. Immutable, default false.
   isTestAccount: boolean;
@@ -164,6 +180,13 @@ export interface IUser extends Document {
   privacyAcceptedAt?: Date;
   privacyAcceptedVia?: PrivacyAcceptedVia;
   privacyHistory?: IPrivacyAcceptance[];
+
+  // T-642 (AJ-517-M18(c), AJ-642-M2..M5) — the next-sign-in M16 box for acceptedVia 'google'
+  // accounts. Server-set only, once (atomic filter on signupConsentAt: null). acceptedVia and
+  // termsAcceptedAt are never changed by it (M18(b)).
+  signupConsentAt?: Date;
+  signupConsentTermsVersion?: string;
+  signupConsentPrivacyVersion?: string;
 
   // T-242 — where the sign-up came from (Ajay, T-242 signed). Set once, only when an account is
   // created and the landing link carried at least one tag. Deleted with the account.
@@ -332,6 +355,8 @@ const UserSchema = new Schema<IUser>(
     planRenewsAt: { type: Date, default: null },
     lastLoginBonusAt: { type: Date, default: null },
     signupBonusGrantedAt: { type: Date, default: null },
+    // T-587 — set when the welcome email is queued (atomic claim). Never cleared: at most once.
+    welcomeQueuedAt: { type: Date, default: null },
     // T-563 (Arjun) — true only for an account made by the test sign-up bypass. Set at create,
     // never changed. Excluded from user counts, referral and the consent export.
     isTestAccount: { type: Boolean, default: false, immutable: true },
@@ -344,8 +369,16 @@ const UserSchema = new Schema<IUser>(
 
     // T-343 — no defaults: absent means no acceptance recorded under T-343 rules yet.
     privacyAcceptedAt: { type: Date },
-    privacyAcceptedVia: { type: String, enum: ['signup', 'reaccept', 'signin'] },
+    privacyAcceptedVia: {
+      type: String,
+      enum: ['signup', 'reaccept', 'signin', 'google_confirm'],
+    },
     privacyHistory: { type: [PrivacyAcceptanceSchema], default: undefined },
+
+    // T-642 — no defaults: absent means the M16 box has not been accepted on this account.
+    signupConsentAt: { type: Date },
+    signupConsentTermsVersion: { type: String, trim: true },
+    signupConsentPrivacyVersion: { type: String, trim: true },
 
     // T-242 — no default: absent means no tags were present at sign-up.
     signupSource: { type: SignupSourceSchema },

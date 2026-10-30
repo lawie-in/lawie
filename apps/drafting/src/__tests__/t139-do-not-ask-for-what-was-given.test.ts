@@ -299,7 +299,7 @@ describe('T-139 criterion 3: the amount in words', () => {
     ['Rs. 2,40,000/-', 'Rupees Two Lakh Forty Thousand only'],
     ['240000', 'Rupees Two Lakh Forty Thousand only'],
     ['1,25,50,075', 'Rupees One Crore Twenty Five Lakh Fifty Thousand Seventy Five only'],
-    ['15,000.50', 'Rupees Fifteen Thousand and Paise Fifty only'],
+    ['15,000.50', 'Rupees Fifteen Thousand and Fifty Paise only'],
     [
       '99,99,99,999',
       'Rupees Ninety Nine Crore Ninety Nine Lakh Ninety Nine Thousand Nine Hundred Ninety Nine only',
@@ -308,7 +308,7 @@ describe('T-139 criterion 3: the amount in words', () => {
     ['100', 'Rupees One Hundred only'],
     ['1,00,000', 'Rupees One Lakh only'],
     ['10,00,00,000', 'Rupees Ten Crore only'],
-    ['12.05', 'Rupees Twelve and Paise Five only'],
+    ['12.05', 'Rupees Twelve and Five Paise only'],
     ['15,000.00', 'Rupees Fifteen Thousand only'],
   ])('amountInWords(%s)', (figures, words) => {
     expect(amountInWords(figures)).toBe(words);
@@ -791,7 +791,10 @@ describe('T-139 round 4, C2: station prefix and suffix', () => {
     ['पुलिस थाना कोतवाली', 'कोतवाली'],
     ['थाना भवन थाना', 'थाना भवन'],
     ['Thana Bhawan PS', 'Thana Bhawan'],
-    ['थाना सिविल लाइन्स', 'सिविल लाइन्स'], // Ajay accepted this risk
+    // T-638 A3 (Ajay, 28 Oct 2026) amends C2: a leading bare थाना is part of the name and stays;
+    // it is stripped only with a separator (थाना - कोतवाली). This flips the earlier "accepted risk" row.
+    ['थाना सिविल लाइन्स', 'थाना सिविल लाइन्स'],
+    ['थाना - कोतवाली', 'कोतवाली'],
   ])('"%s" prints as "%s"', (value, expected) => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
     require('./setupEnv');
