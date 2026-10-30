@@ -150,6 +150,13 @@ export const PAYMENT_COPY = {
   inkDraft: (title: string) => `Draft: ${title}`,
   inkDraftUntitled: 'Draft', // DEV (a use from before run ids)
   deletedDocument: 'Deleted document', // AJ-646-M5
+  /**
+   * T-705 (Ajay, handoff/legal/T-703-T-705-signoff-ajay.md (b)): a paid revision reads
+   * `Revision −{n} Ink` (the change column gives `−{n} Ink`, as every debit line), the free
+   * one `Revision — free`.
+   */
+  inkRevision: 'Revision',
+  inkRevisionFree: 'Revision \u2014 free',
   inkLabels: {
     topup: 'Top-up', // DESIGN
     plan: 'Plan Ink', // DESIGN ("[Plan Ink: Solo]"; no plan name in the API)

@@ -88,6 +88,9 @@ export function parseInkHistory(body: unknown): InkHistoryPageData | null {
 /** What the row says (titles only; AJ-646-M5 for a deleted document). */
 export function inkEntryText(e: InkEntry): string {
   if (e.kind === 'usage') {
+    // T-705: a revision line names no document (Ajay's (b) strings).
+    if (e.label === 'revision') return PAYMENT_COPY.inkRevision;
+    if (e.label === 'revision_free') return PAYMENT_COPY.inkRevisionFree;
     if (e.documentDeleted) return PAYMENT_COPY.deletedDocument;
     return e.documentTitle ? PAYMENT_COPY.inkDraft(e.documentTitle) : PAYMENT_COPY.inkDraftUntitled;
   }

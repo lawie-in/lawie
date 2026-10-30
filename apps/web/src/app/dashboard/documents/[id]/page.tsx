@@ -18,6 +18,7 @@ import DeleteDocumentDialog, {
   rememberDeleteOutcome,
   type DeleteOutcome,
 } from '@/components/documents/DeleteDocumentDialog';
+import ReviseDialog from '@/components/draft/ReviseDialog';
 import AnnexuresCard, { annexuresCardVisible } from '@/components/editor/AnnexuresCard';
 import { EDITOR_COPY } from '@/components/editor/copy';
 import DocumentEditor from '@/components/editor/DocumentEditor';
@@ -71,6 +72,11 @@ interface DocumentData {
   hasParty?: boolean;
   /** T-689 — the rule pack's name for the document type. Null or absent: show the humanised docType. */
   docTypeLabel?: string | null;
+  /** T-705 — revisions so far, the limit, whether it can be revised, the original quote. */
+  revisions?: { count: number; freeUsed: boolean };
+  revisionLimit?: number;
+  revisable?: boolean;
+  originalInk?: number | null;
 }
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -104,6 +110,8 @@ export default function DocumentEditorPage() {
   const [exportError, setExportError] = useState<ExportFormat | null>(null);
   // T-115b — the Delete document button and its dialog (Rajesh's spec §1, §4).
   const [deleteOpen, setDeleteOpen] = useState(false);
+  // T-705 — the Revise dialog.
+  const [reviseOpen, setReviseOpen] = useState(false);
   const handleDeleted = (outcome: DeleteOutcome) => {
     rememberDeleteOutcome(outcome);
     router.push('/dashboard/documents');
@@ -784,6 +792,15 @@ export default function DocumentEditorPage() {
           </dl>
         </div>
 
+        {/* T-705 — revise this draft (dialog below) */}
+        {doc.revisable && (
+          <div className="pt-2">
+            <button type="button" onClick={() => setReviseOpen(true)} className={secondaryButton}>
+              Revise
+            </button>
+          </div>
+        )}
+
         {/* T-115b — at the bottom, away from Download and Edit, so it is not hit by mistake */}
         <div className="pt-2">
           <button type="button" onClick={() => setDeleteOpen(true)} className={secondaryButton}>
@@ -791,6 +808,31 @@ export default function DocumentEditorPage() {
           </button>
         </div>
       </div>
+
+      {reviseOpen && doc.revisable && (
+        <ReviseDialog
+          documentId={doc._id}
+          documentLabel={doc.docTypeLabel || doc.title}
+          revisions={doc.revisions ?? { count: 0, freeUsed: false }}
+          revisionLimit={doc.revisionLimit ?? 10}
+          originalInk={doc.originalInk ?? null}
+          beforeRevise={async () => {
+            // Pending edits are saved first, so the revision starts from them.
+            if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+            if (latestHtmlRef.current === savedHtmlRef.current) return true;
+            return saveDocument(latestHtmlRef.current);
+          }}
+          onClose={(stale) => {
+            setReviseOpen(false);
+            if (stale) retryLoad();
+          }}
+          onRevised={() => {
+            setReviseOpen(false);
+            setChecklist([]);
+            retryLoad();
+          }}
+        />
+      )}
 
       {deleteOpen && (
         <DeleteDocumentDialog

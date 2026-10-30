@@ -2,6 +2,7 @@ import crypto from 'crypto';
 
 import { COURT_TYPES, DOC_TYPES, DocType, requireCurrentPrivacy } from '@lawie/shared';
 import type { LedgerFact, LedgerUnresolvedFact } from '@lawie/shared';
+import * as Sentry from '@sentry/node';
 import { Router, Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import { z } from 'zod';
@@ -18,10 +19,11 @@ import { FREE_TIER_MONTHLY_LIMIT } from '../middleware/enforceFreeLimit';
 import { requireVerifiedEmail } from '../middleware/requireVerifiedEmail';
 import { spendCapCheck } from '../middleware/spendCap';
 import { Court } from '../models/Court.model';
-import { LawieDocument } from '../models/Document.model';
+import { LawieDocument, PREVIOUS_VERSIONS_KEEP, REVISION_LIMIT } from '../models/Document.model';
 import { Event } from '../models/Event.model';
 import { effectiveRunType, Generation, RunType } from '../models/Generation.model';
 import { User } from '../models/User.model';
+import type { BriefGenerateInput } from '../services/ai.service';
 import {
   formGateFiles,
   GenerationFailedError,
@@ -68,6 +70,7 @@ import {
   DraftQuote,
   extendInkHold,
   getCreditBalance,
+  hasOpenHoldForRun,
   holdInk,
   inkFromUnits,
   INK_HOLD_HEARTBEAT_MS,
@@ -96,7 +99,13 @@ import {
 } from '../services/fact-diff-log';
 import { currentState, loadOwnLedger } from '../services/fact-ledger.service';
 import { FACT_CHECK_DISCLAIMER } from '../services/fact-verifier';
-import { bodyField, hiddenTemplateIds, templateGuard } from '../services/feature-switches';
+import {
+  bodyField,
+  hiddenTemplateIds,
+  isTemplateEnabled,
+  TEMPLATE_NOT_FOUND,
+  templateGuard,
+} from '../services/feature-switches';
 import {
   briefLedgerValues,
   buildInMemoryLedger,
@@ -115,6 +124,7 @@ import {
   cacheCounts,
   effectiveCacheRates,
   getModelRates,
+  getUsdInrRate,
   priceCacheUsage,
   priceUsage,
   RateLookup,
@@ -145,6 +155,7 @@ import {
   sealFilingChecklist,
   sealFormInputs,
 } from '../utils/case-details';
+import { draftAsText } from '../utils/draft-text';
 import { decrypt, encrypt } from '../utils/encryption';
 import { missingAsBlanks } from '../utils/missingAsBlanks';
 import { publicTemplateConfig, publicTemplateSummary } from '../utils/publicTemplateConfig';
@@ -351,6 +362,7 @@ export async function recordGeneration(
           }
         : {}),
     });
+    await alertOverCostLine(input, costUsd);
     return { duplicate: false };
   } catch (dbErr) {
     const isDuplicate =
@@ -372,6 +384,36 @@ export async function recordGeneration(
   }
 }
 
+/** T-705 (Vikram): one attempt's model cost above this (paise) sends a Sentry warning, until T-685. */
+export const COST_ALERT_PAISE = 1800;
+
+/**
+ * T-705 (Vikram, binding, until T-685's cost cap): when one attempt's model
+ * cost (the Generation row's costUsd, at finance.usd_inr) is above ₹18, one
+ * Sentry warning, fingerprinted per run. Ids and paise only, never content.
+ * Never throws.
+ */
+async function alertOverCostLine(input: RecordGenerationInput, costUsd: number): Promise<void> {
+  if (!(costUsd > 0)) return;
+  try {
+    const costPaise = Math.round(costUsd * (await getUsdInrRate()) * 100);
+    if (costPaise <= COST_ALERT_PAISE) return;
+    Sentry.captureMessage('draft attempt over the cost alert line', {
+      level: 'warning',
+      fingerprint: ['draft-cost-alert', input.runId],
+      tags: { kind: input.runType === 'revision' ? 'revision' : 'draft', runId: input.runId },
+      extra: {
+        runId: input.runId,
+        runSequence: input.runSequence,
+        documentId: input.documentId ? String(input.documentId) : null,
+        costPaise,
+      },
+    });
+  } catch {
+    // An alert must never fail the run.
+  }
+}
+
 /**
  * Resolve the runId/runSequence for this attempt (T-003 §3.8).
  * - No run_id in the request → new run, sequence 1.
@@ -383,13 +425,47 @@ export async function recordGeneration(
  *
  * T-110 — runType: a new run is 'initial'. A retry keeps the runType of the
  * attempt it retries (the latest one); pre-T-110 rows read as 'initial'.
- * Revisions (T-205) will add a revision request path here.
+ *
+ * T-705 — revise branch (`mode: 'revise'`): the opposite check. The run must
+ * be this user's and have a completed attempt; then it continues: same runId,
+ * sequence = highest attempt so far (any status) + 1, runType 'revision'.
+ * Otherwise null (the caller refuses; a revision never starts a new run).
+ * `floorSequence` (the document's runSequence) is a lower bound for "highest".
+ * The generate path (no mode) is unchanged.
  */
 export async function resolveRun(
   userId: string,
   match: { templateId: string } | { docType: string },
   providedRunId: string | undefined,
-): Promise<{ runId: string; runSequence: number; runType: RunType }> {
+): Promise<{ runId: string; runSequence: number; runType: RunType }>;
+export async function resolveRun(
+  userId: string,
+  match: { templateId: string } | { docType: string },
+  providedRunId: string,
+  mode: 'revise',
+  floorSequence?: number,
+): Promise<{ runId: string; runSequence: number; runType: RunType } | null>;
+export async function resolveRun(
+  userId: string,
+  match: { templateId: string } | { docType: string },
+  providedRunId: string | undefined,
+  mode?: 'revise',
+  floorSequence?: number,
+): Promise<{ runId: string; runSequence: number; runType: RunType } | null> {
+  if (mode === 'revise') {
+    if (!providedRunId) return null;
+    const runAttempts = await Generation.find({ runId: providedRunId, userId, ...match })
+      .select('runSequence status')
+      .lean();
+    if (!runAttempts.some((a) => a.status === 'completed')) return null;
+    // The document's own sequence counts too, so an attempt whose Generation row
+    // was never written cannot be reused (its settle would write no ledger row).
+    const floor =
+      typeof floorSequence === 'number' && Number.isFinite(floorSequence) ? floorSequence : 1;
+    const highest = runAttempts.reduce((n, a) => Math.max(n, a.runSequence ?? 1), floor);
+    return { runId: providedRunId, runSequence: highest + 1, runType: 'revision' };
+  }
+
   if (!providedRunId) {
     return { runId: crypto.randomUUID(), runSequence: 1, runType: 'initial' };
   }
@@ -447,6 +523,12 @@ export interface InkHoldHandle {
    * returns undefined (the full hold is settled, as before).
    */
   delivered(count: number): Promise<number | undefined>;
+  /**
+   * T-705: true once finish() withheld the draft (lost hold, re-hold
+   * refused): the run was not paid and no `done` will be sent. A revision
+   * undoes its document write then.
+   */
+  wasWithheld(): boolean;
 }
 
 /**
@@ -490,7 +572,16 @@ export async function withInkHold(
    * asking quote changes anything (quote stored on the hold, settle at the
    * delivered band).
    */
-  key: { runId: string; runSequence: number; quote?: DraftQuote; templateId?: string },
+  key: {
+    runId: string;
+    runSequence: number;
+    quote?: DraftQuote;
+    templateId?: string;
+    /** T-705: a paid revision's hold, settled with ledger reason 'regenerate'. */
+    reason?: 'regenerate';
+    /** T-705 (Vikram): tags the run's llm_call lines; set only on a revision. */
+    revision?: 'free' | 'paid';
+  },
   cost: number,
   preStreamError: Record<string, unknown>,
   run: (ink: InkHoldHandle) => Promise<void>,
@@ -499,7 +590,11 @@ export async function withInkHold(
   const { runId, runSequence, quote } = key;
   const paragraphQuote: ParagraphQuote | undefined = quote?.asks ? quote : undefined;
   /** T-577: the hold's quote flag, only for an asking quote (holds are written as before otherwise). */
-  const holdExtra = paragraphQuote ? { quoted: true } : {};
+  const holdExtra = {
+    ...(paragraphQuote ? { quoted: true } : {}),
+    // T-705: only a paid revision passes a reason; every other hold is written as before.
+    ...(key.reason ? { reason: key.reason } : {}),
+  };
   /** T-577: the settle amount for the delivered count (Ink and units); unset → the full hold. */
   let deliveredInk: number | undefined;
   let deliveredUnits: number | undefined;
@@ -804,11 +899,22 @@ export async function withInkHold(
       }
       return deliveredInk;
     },
+    wasWithheld() {
+      return withheld;
+    },
   };
 
   try {
     // T-681a: every model call of the run logs its run id (ids only).
-    await runWithRunContext({ runId, runSequence, templateId: key.templateId }, () => run(handle));
+    await runWithRunContext(
+      {
+        runId,
+        runSequence,
+        templateId: key.templateId,
+        ...(key.revision ? { revision: key.revision } : {}),
+      },
+      () => run(handle),
+    );
   } finally {
     await stopBeats();
     await release();
@@ -2186,6 +2292,710 @@ router.post(
   },
 );
 
+// ── T-705: revise a delivered draft ─────────────────────────────────────────
+// One free revision per draft, then each further revision costs the original
+// draft's quote (Vikram, 30 Oct 2026). Same run (runId), next runSequence,
+// runType 'revision'. A revision that fails, is withheld by the gates or is
+// not saved charges nothing and does not count (Ajay, T-705 (a) condition 2).
+
+/**
+ * T-705 (Vikram, binding): a revision runs on the same drafter model as a
+ * draft. streamGenerateFromBrief resolves it (resolveModel('drafter')) and its
+ * input carries no model; this stops compiling if a model field is ever added.
+ */
+type NoModelOverride =
+  Extract<keyof BriefGenerateInput, 'model' | 'aiModel' | 'modelId' | 'modelKey'> extends never
+    ? true
+    : false;
+export const REVISION_USES_DRAFTER_MODEL: NoModelOverride = true;
+
+/** T-705: POST /documents/:id/revise body. */
+const reviseSchema = z.object({
+  /** The user's revision note: an instruction, never a fact source (Ajay (a) condition 1). */
+  note: z.string().trim().min(10).max(2000),
+  /** The Ink the dialog showed (required). Not the server's price: 409 price_changed. */
+  expected_ink: z.number().nonnegative().max(1000).multipleOf(0.5),
+});
+
+/** T-705: what a document's stored brief holds (written by generate-from-brief). */
+const storedBriefSchema = z.object({
+  kind: briefGenerateSchema.shape.kind,
+  values: briefGenerateSchema.shape.values,
+  court: briefGenerateSchema.shape.court,
+  language: z.enum(['en', 'hi', 'bilingual']).default('en'),
+  described: z.string().optional(),
+  ledger_id: briefGenerateSchema.shape.ledger_id,
+});
+
+/** T-705: the fields a revision rewrites on the document row (and puts back if it is undone). */
+const REVISION_WRITTEN_FIELDS = [
+  'generatedContent',
+  'finalContent',
+  'version',
+  'revisions',
+  'previousVersions',
+  'runSequence',
+  'sectionsCited',
+  'filingChecklistEnc',
+  'checklistState',
+  'startingDraft',
+] as const;
+
+interface RevisionDocFields {
+  revisions?: { count?: number; freeUsed?: boolean } | null;
+  brief?: string | null;
+  runId?: string | null;
+  rulePackId?: string | null;
+}
+
+/** T-705: a document's revision state; a row from before T-705 reads as {0, false}. */
+export function revisionState(doc: RevisionDocFields): { count: number; freeUsed: boolean } {
+  const count = doc.revisions?.count;
+  return {
+    count: typeof count === 'number' && Number.isFinite(count) && count > 0 ? count : 0,
+    freeUsed: doc.revisions?.freeUsed === true,
+  };
+}
+
+/** T-705: a draft from a rule pack with its stored brief and run; a guided or form draft is not. */
+function isRevisableDoc(doc: RevisionDocFields): boolean {
+  return (
+    typeof doc.brief === 'string' &&
+    doc.brief !== '' &&
+    typeof doc.runId === 'string' &&
+    doc.runId !== '' &&
+    typeof doc.rulePackId === 'string' &&
+    doc.rulePackId !== '' &&
+    doc.rulePackId !== GUIDED_ID
+  );
+}
+
+/**
+ * T-705: the run's original (initial, completed) attempt and the Ink it was
+ * quoted. The quote is the attempt's `inkQuoted` (T-577, set when the pack
+ * asked for a count); for a pack that did not ask, the Ink its settle kept
+ * (inkledger `generate` rows of that attempt); failing both, the pack's
+ * price today (costForTemplate). Ink is null when none of these is known.
+ */
+export async function originalDraftQuote(
+  userId: string,
+  runId: string,
+  templateId: string,
+): Promise<{
+  ink: number | null;
+  initial: { runSequence?: number; paragraphsRequested?: number | null } | null;
+}> {
+  const attempts = await Generation.find({ runId, userId, status: 'completed' })
+    .select('runSequence runType inkQuoted paragraphsRequested templateId')
+    .sort({ runSequence: 1 })
+    .lean();
+  const initial = attempts.find((a) => effectiveRunType(a) === 'initial') ?? null;
+  if (!initial) return { ink: null, initial: null };
+  if (typeof initial.inkQuoted === 'number' && Number.isFinite(initial.inkQuoted)) {
+    return { ink: initial.inkQuoted, initial };
+  }
+  const db = mongoose.connection.db;
+  if (db && mongoose.Types.ObjectId.isValid(userId) && typeof initial.runSequence === 'number') {
+    const rows = await db
+      .collection('inkledger')
+      .find(
+        {
+          userId: new mongoose.Types.ObjectId(userId),
+          runId,
+          runSequence: initial.runSequence,
+          reason: 'generate',
+        },
+        { projection: { delta: 1 } },
+      )
+      .toArray();
+    const units = rows.reduce(
+      (n, r) => n + (typeof r.delta === 'number' && r.delta < 0 ? -r.delta : 0),
+      0,
+    );
+    if (units > 0) return { ink: inkFromUnits(units), initial };
+  }
+  const listed = costForTemplate(initial.templateId ?? templateId);
+  return { ink: listed ?? null, initial };
+}
+
+/** T-705: the price of the next revision: 0 for the first, else the original quote. */
+function nextRevisionInk(count: number, originalInk: number | null): number | null {
+  return count === 0 ? 0 : originalInk;
+}
+
+router.post(
+  '/:id/revise',
+  validateObjectId,
+  authenticate,
+  requireCurrentPrivacy, // as generate-from-brief: a revision is a new draft text
+  requireVerifiedEmail,
+  describeFirstOnly,
+  spendCapCheck,
+  async (req: Request, res: Response): Promise<void> => {
+    const parsed = reviseSchema.safeParse(req.body);
+    if (!parsed.success) {
+      // Messages come from the schema only, never from the submitted text.
+      res.status(400).json({
+        error: 'Invalid request',
+        issues: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
+      });
+      return;
+    }
+    const payload = req.jwtPayload!;
+    const { note } = parsed.data;
+    const notRevisable = (): void => {
+      res.status(409).json({ error: 'not_revisable' });
+    };
+
+    const doc = await LawieDocument.findOne({
+      _id: req.params.id,
+      userId: payload.sub,
+      isDeleted: { $ne: true },
+    }).lean();
+    if (!doc) {
+      res.status(404).json({ error: 'Document not found' });
+      return;
+    }
+    if (!isRevisableDoc(doc)) return notRevisable();
+    const docId = String(doc._id);
+    const runIdOfDoc = doc.runId as string;
+    const kind = doc.rulePackId as string;
+
+    // The delivered text (the user's edits are the starting point) and the stored brief.
+    let previousDraft: string;
+    let stored: z.infer<typeof storedBriefSchema>;
+    try {
+      previousDraft = draftAsText(
+        doc.finalContent ? decrypt(doc.finalContent) : decrypt(doc.generatedContent),
+      );
+      const briefParsed = storedBriefSchema.safeParse(JSON.parse(decrypt(doc.brief as string)));
+      if (!briefParsed.success || briefParsed.data.kind !== kind) return notRevisable();
+      stored = briefParsed.data;
+    } catch (err) {
+      // Ids and the error name only.
+      console.error(
+        `[drafting] revise: could not read document ${docId}:`,
+        err instanceof Error ? err.name : 'unknown',
+      );
+      return notRevisable();
+    }
+    if (previousDraft.trim() === '') return notRevisable();
+
+    const revisions = revisionState(doc);
+    if (revisions.count >= REVISION_LIMIT) {
+      res.status(429).json({ error: 'revision_limit', limit: REVISION_LIMIT });
+      return;
+    }
+
+    // An attempt of this run still holds Ink: it is in flight.
+    try {
+      if (await hasOpenHoldForRun(payload.sub, runIdOfDoc)) {
+        res.status(409).json({ error: 'run_in_progress' });
+        return;
+      }
+    } catch (err) {
+      console.error(
+        `[drafting] revise: in-flight check failed (runId=${runIdOfDoc}):`,
+        err instanceof Error ? err.name : 'unknown',
+      );
+      res.status(503).json({ error: 'try_again' });
+      return;
+    }
+
+    // T-375: a template hidden by its switch is not drafted.
+    if (!(await isTemplateEnabled(kind, payload.sub).catch(() => false))) {
+      res.status(404).json(TEMPLATE_NOT_FOUND);
+      return;
+    }
+
+    const pack = loadRulePack(kind);
+    let templateConfig: ReturnType<typeof loadTemplateConfig>;
+    try {
+      templateConfig = pack ? loadTemplateConfig(kind) : null;
+    } catch (err) {
+      logTemplateConfigError(err);
+      res.status(500).json({ error: 'Template config unavailable' });
+      return;
+    }
+    if (!pack || !templateConfig) {
+      res.status(404).json({ error: 'Document kind not found' });
+      return;
+    }
+    if (templateConfig.plan_access === 'pro' && payload.plan !== 'pro') {
+      res.status(403).json({ error: 'This document requires a Pro plan' });
+      return;
+    }
+    const { values, language } = stored;
+    const described = (stored.described ?? '').trim();
+
+    // The ledger the draft was written from (its current version), as generate-from-brief.
+    let ledger: {
+      id: string;
+      version: number;
+      facts: LedgerFact[];
+      unresolved: LedgerUnresolvedFact[];
+      runType: FactDiffRunType;
+      lists: AvermentLists;
+    } | null = null;
+    if (stored.ledger_id !== undefined && (await isFactLedgerEnabled(payload.sub))) {
+      const ledgerDoc = await loadOwnLedger(stored.ledger_id, payload.sub);
+      if (!ledgerDoc || ledgerDoc.documentKind !== kind) return notRevisable();
+      let lists: AvermentLists;
+      try {
+        lists = loadAvermentLists(kind);
+      } catch (err) {
+        console.error(
+          `[drafting] averment list unreadable (kind=${kind}):`,
+          err instanceof Error ? err.name : 'unknown',
+        );
+        res.status(503).json({ error: 'averments_unavailable' });
+        return;
+      }
+      let state: ReturnType<typeof currentState>;
+      try {
+        state = currentState(ledgerDoc);
+      } catch (err) {
+        console.error(
+          `[drafting] ledger unreadable (ledgerId=${String(ledgerDoc.id)}):`,
+          err instanceof Error ? err.name : 'unknown',
+        );
+        res.status(503).json({ error: 'ledger_unavailable' });
+        return;
+      }
+      ledger = {
+        id: String(ledgerDoc.id),
+        version: ledgerDoc.currentVersion,
+        facts: withS138DateChecks(
+          state.facts,
+          kind,
+          state.unresolved.map((u) => u.key),
+        ),
+        unresolved: state.unresolved,
+        runType: factDiffRunType(ledgerDoc.runType),
+        lists,
+      };
+    }
+
+    // The brief, worked out again from the stored values, as generate-from-brief.
+    const briefRequest = { kind, values, court: stored.court ?? undefined };
+    const brief = updateBrief(briefRequest);
+    if (!brief) return notRevisable();
+    const confirmable = ledger
+      ? (updateBrief({ ...briefRequest, ledger: { facts: ledger.facts } }) ?? brief)
+      : brief;
+    if (!confirmable.can_confirm) {
+      res.status(400).json({
+        error: 'brief_not_confirmed',
+        message: confirmable.confirm_message,
+        blockers: confirmable.confirm_blockers,
+      });
+      return;
+    }
+
+    // T-637: the held-blank gate's in-memory ledger when no persisted ledger is used.
+    let gateLedger: {
+      facts: LedgerFact[];
+      unresolved: LedgerUnresolvedFact[];
+      lists: AvermentLists;
+    } | null = null;
+    if (ledger === null) {
+      let lists: AvermentLists;
+      try {
+        lists = loadAvermentLists(kind);
+      } catch (err) {
+        console.error(
+          `[drafting] averment list unreadable (kind=${kind}):`,
+          err instanceof Error ? err.name : 'unknown',
+        );
+        res.status(503).json({ error: 'averments_unavailable' });
+        return;
+      }
+      const state = buildInMemoryLedger(pack, briefLedgerValues(brief));
+      gateLedger = {
+        facts: withS138DateChecks(
+          state.facts,
+          kind,
+          state.unresolved.map((u) => u.key),
+        ),
+        unresolved: state.unresolved,
+        lists,
+      };
+    }
+
+    // ADR-021 rule 3: the court comes from the courts list only.
+    let courtData: CourtLookupData | undefined;
+    if (brief.kind.court_document) {
+      const found = await Court.findOne({ courtId: brief.court.court, isActive: true })
+        .maxTimeMS(5000)
+        .lean();
+      if (!found) {
+        res.status(400).json({
+          error: 'court_not_found',
+          message: 'Choose the court from the list to continue.',
+        });
+        return;
+      }
+      courtData = {
+        designation: found.designation,
+        city: found.city,
+        caseNomenclature: found.caseNomenclature,
+        formattingRulesRef: found.formattingRulesRef,
+        courtType: found.courtType,
+        state: found.state,
+        courtRule: loadCourtRule(found.formattingRulesRef) ?? undefined,
+      };
+    }
+
+    // Price: the original draft's quote, read before any hold.
+    let original: Awaited<ReturnType<typeof originalDraftQuote>>;
+    try {
+      original = await originalDraftQuote(payload.sub, runIdOfDoc, kind);
+    } catch (err) {
+      console.error(
+        `[drafting] revise: could not read the original quote (runId=${runIdOfDoc}):`,
+        err instanceof Error ? err.name : 'unknown',
+      );
+      res.status(503).json({ error: 'try_again' });
+      return;
+    }
+    if (!original.initial) return notRevisable();
+    const cost = nextRevisionInk(revisions.count, original.ink);
+    if (cost === null) {
+      res.status(500).json({ error: 'quote_failed' });
+      return;
+    }
+    if (parsed.data.expected_ink !== cost) {
+      res.status(409).json({ error: 'price_changed', ink: cost });
+      return;
+    }
+
+    const resolved = await resolveRun(
+      payload.sub,
+      { templateId: kind },
+      runIdOfDoc,
+      'revise',
+      doc.runSequence,
+    );
+    if (!resolved) return notRevisable();
+    const { runId, runSequence, runType } = resolved;
+    res.setHeader('X-Run-Id', runId);
+    res.setHeader('X-Run-Sequence', String(runSequence));
+
+    const docType = TEMPLATE_TO_DOC_TYPE[kind] || DOC_TYPES.PETITION;
+    const startedAt = Date.now();
+    const holdError = { error: 'Generation failed' };
+    // A paid revision settles with ledger reason 'regenerate'; the free one holds 0.
+    const inkKey = {
+      runId,
+      runSequence,
+      templateId: kind,
+      ...(cost > 0 ? { reason: 'regenerate' as const } : {}),
+      // Vikram: every llm_call line of a revision says free or paid (with its run id).
+      revision: cost > 0 ? ('paid' as const) : ('free' as const),
+    };
+    const revisionRecord = {
+      userId: payload.sub,
+      docType,
+      templateId: kind,
+      runId,
+      runSequence,
+      runType,
+      ledger: ledger ? ('on' as const) : ('off' as const),
+      // T-705: every revision row carries its price (0 for the free one).
+      inkQuoted: cost,
+    };
+    await withInkHold(req, res, inkKey, cost, holdError, async (ink) => {
+      let result;
+      try {
+        result = await streamGenerateFromBrief(
+          {
+            brief,
+            language,
+            targetParagraphs: clampTarget(original.initial?.paragraphsRequested ?? undefined),
+            courtData,
+            userId: payload.sub,
+            runId,
+            runSequence,
+            runType,
+            pack,
+            templateConfig,
+            ...(described ? { described } : {}),
+            ...(ledger
+              ? {
+                  ledger: {
+                    facts: ledger.facts,
+                    lists: ledger.lists,
+                    unresolved: ledger.unresolved,
+                  },
+                }
+              : {}),
+            ...(gateLedger ? { gateLedger } : {}),
+            advocateName: payload.name || undefined,
+            enrollmentNumber: await profileEnrollmentNumber(payload.sub),
+            revision: { previousDraft, note },
+          },
+          res,
+        );
+      } catch (genErr) {
+        // Failed or withheld by the gates: the hold goes back, nothing counts.
+        await ink.release();
+        const failed = genErr instanceof GenerationFailedError ? genErr : null;
+        if (!failed) {
+          console.error(
+            `[drafting] revise threw (runId=${runId}, runSequence=${runSequence}):`,
+            genErr instanceof Error ? genErr.name : 'unknown',
+          );
+        }
+        await recordGeneration({
+          ...revisionRecord,
+          status: 'failed',
+          documentId: doc._id,
+          aiModel: failed?.aiModel,
+          transport: failed?.transport,
+          usage: failed?.usage ?? {
+            inputTokens: 0,
+            outputTokens: 0,
+            llmCalls: 0,
+            usageSource: 'provider',
+          },
+          paragraphCount: 0,
+          durationMs: Date.now() - startedAt,
+          failure: failed?.failure,
+        });
+        if (failed) {
+          res.end();
+        } else if (!res.headersSent) {
+          res.status(500).json({ error: 'Generation failed' });
+        } else {
+          writeDidNotFinish(res, runId);
+        }
+        return;
+      }
+
+      await ink.delivered(countBodyParagraphs(result));
+
+      // Save: the new text, the earlier one kept sealed (as it is stored), count + 1.
+      const oid = new mongoose.Types.ObjectId(docId);
+      const readVersion = doc.version ?? 1;
+      const readCount = revisions.count;
+      const checklistLength = result.filingChecklist.length;
+      let before: Record<string, unknown> | null = null;
+      try {
+        before = (await LawieDocument.collection.findOneAndUpdate(
+          {
+            _id: oid,
+            userId: new mongoose.Types.ObjectId(payload.sub),
+            isDeleted: { $ne: true },
+            // The state read at the start: a PATCH or another revise since makes this
+            // match nothing, and the run takes the "not saved" path below.
+            version: readVersion === 1 ? { $in: [1, null] } : readVersion,
+            'revisions.count': readCount === 0 ? { $in: [0, null] } : readCount,
+          },
+          [
+            {
+              $set: {
+                previousVersions: {
+                  $slice: [
+                    {
+                      $concatArrays: [
+                        { $ifNull: ['$previousVersions', []] },
+                        [
+                          {
+                            version: { $ifNull: ['$version', 1] },
+                            content: { $ifNull: ['$finalContent', '$generatedContent'] },
+                            createdAt: '$$NOW',
+                          },
+                        ],
+                      ],
+                    },
+                    -PREVIOUS_VERSIONS_KEEP,
+                  ],
+                },
+                generatedContent: { $literal: encrypt(result.fullText) },
+                finalContent: null,
+                version: { $add: [{ $ifNull: ['$version', 1] }, 1] },
+                revisions: {
+                  count: { $add: [{ $ifNull: ['$revisions.count', 0] }, 1] },
+                  freeUsed: true,
+                },
+                runSequence: { $literal: runSequence },
+                sectionsCited: { $literal: result.sectionsCited },
+                filingChecklistEnc: { $literal: sealFilingChecklist(result.filingChecklist) },
+                // The ticks stay when the checklist is the same length; else all unticked.
+                checklistState: {
+                  $cond: [
+                    {
+                      $eq: [{ $size: { $ifNull: ['$checklistState', []] } }, checklistLength],
+                    },
+                    '$checklistState',
+                    { $literal: result.filingChecklist.map(() => false) },
+                  ],
+                },
+                // T-106: a starting draft keeps its label; a revision never clears it.
+                startingDraft: {
+                  $or: [{ $eq: ['$startingDraft', true] }, { $literal: result.startingDraft }],
+                },
+                updatedAt: '$$NOW',
+              },
+            },
+          ],
+          { returnDocument: 'before' },
+        )) as Record<string, unknown> | null;
+      } catch (dbErr) {
+        console.error(
+          `[drafting] revise: DB save failed (runId=${runId}, runSequence=${runSequence}):`,
+          dbErr instanceof Error ? dbErr.name : 'unknown',
+        );
+      }
+
+      if (!before) {
+        // Not saved (deleted meanwhile, or the write failed): not charged, not counted.
+        await ink.release();
+        await recordGeneration({
+          ...revisionRecord,
+          status: 'failed',
+          documentId: doc._id,
+          aiModel: result.aiModel,
+          transport: result.transport,
+          usage: result.usage,
+          paragraphCount: result.bodyParaCount,
+          durationMs: Date.now() - startedAt,
+        });
+        writeDidNotFinish(res, runId);
+        return;
+      }
+      const savedBefore = before;
+      /** Put the row back as it was (duplicate attempt, or the draft was withheld unpaid). */
+      const undoSave = async (why: string): Promise<void> => {
+        const set: Record<string, unknown> = {};
+        const unset: Record<string, 1> = {};
+        for (const f of REVISION_WRITTEN_FIELDS) {
+          if (savedBefore[f] === undefined) unset[f] = 1;
+          else set[f] = savedBefore[f];
+        }
+        try {
+          await LawieDocument.collection.updateOne(
+            { _id: oid, runSequence },
+            {
+              ...(Object.keys(set).length > 0 ? { $set: set } : {}),
+              ...(Object.keys(unset).length > 0 ? { $unset: unset } : {}),
+            },
+          );
+        } catch (err) {
+          console.error(
+            `[drafting] revise: could not undo the save (${why}, runId=${runId}, runSequence=${runSequence}):`,
+            err instanceof Error ? err.name : 'unknown',
+          );
+        }
+      };
+
+      const { duplicate } = await recordGeneration({
+        ...revisionRecord,
+        status: 'completed',
+        documentId: doc._id,
+        aiModel: result.aiModel,
+        transport: result.transport,
+        usage: result.usage,
+        paragraphCount: result.bodyParaCount,
+        durationMs: Date.now() - startedAt,
+      });
+      if (duplicate) {
+        await undoSave('duplicate');
+        await ink.release();
+        writeDidNotFinish(res, runId);
+        return;
+      }
+
+      // T-147d: the fact-diff log, as for a ledger draft. Its own try; ids only.
+      const factOutcome = result.factCheck ?? result.factDiff?.outcome;
+      if (ledger && factOutcome) {
+        try {
+          await writeFactCheckLog({
+            outcome: factOutcome,
+            path: result.factDiff?.path ?? 'legacy',
+            runId,
+            documentId: docId,
+            userId: payload.sub,
+            ledgerId: ledger.id,
+            rulePack: pack.id,
+            rulePackVersion: rulePackVersionOf(pack),
+            runType: ledger.runType,
+            requiredFactCount: buildChecklist(pack).filter((i) => i.required).length,
+            deliveredText: result.fullText,
+          });
+        } catch (logErr) {
+          console.error(
+            `[drafting] fact-diff log write failed (kind=${kind}, runId=${runId}):`,
+            logErr instanceof Error ? logErr.name : 'unknown',
+          );
+        }
+      }
+
+      await ink.finish({ saved: true, duplicate: false, reference: `${pack.name} (${docId})` });
+      if (ink.wasWithheld()) {
+        // Unpaid: the revision does not stand and does not count.
+        await undoSave('withheld');
+        await Generation.updateOne({ runId, runSequence }, { $set: { status: 'failed' } }).catch(
+          () => undefined,
+        );
+        return;
+      }
+
+      if (process.env.NODE_ENV !== 'test') {
+        console.info(
+          `[drafting] Revised: doc ${docId} for user ${payload.sub} (${kind}, runId=${runId}, runSequence=${runSequence}, ink=${cost})`,
+        );
+      }
+
+      ink.sendDone({
+        complete: true,
+        docId,
+        runId,
+        sectionsCited: result.sectionsCited,
+        rulePack: true,
+        mandatoryClausesComplete: result.mandatoryClausesComplete,
+        missingClauses: (result.rendered
+          ? missingFromRendered(result.rendered)
+          : result.missingClauses
+        ).map((m) => ({ id: m.id, title: m.title })),
+        repaired: result.repaired,
+        ledger: ledger ? 'on' : 'off',
+        startingDraft: result.startingDraft,
+        startingDraftLabel: result.startingDraft ? STARTING_DRAFT_LABEL : null,
+        labelReason: result.labelReason,
+        creditsSpent: [],
+        disclaimer: FACT_CHECK_DISCLAIMER,
+        ...(!result.rendered && 'factCheck' in result && result.factCheck
+          ? { factCheck: { banner: result.factCheck.banner } }
+          : {}),
+        ...(result.rendered ? { rendered: result.rendered } : {}),
+        ...(brief.soft_findings && brief.soft_findings.length > 0
+          ? { soft_findings: brief.soft_findings }
+          : {}),
+        // T-705: the revision state after this one.
+        revisions: { count: revisions.count + 1, freeUsed: true },
+      });
+    });
+  },
+);
+
+/** T-567 item 41: AJ-539-M2 text (DRAFT_DID_NOT_FINISH) as an SSE error, then end. */
+function writeDidNotFinish(res: Response, runId: string): void {
+  if (!res.headersSent) {
+    res.status(500).json({ error: 'Generation failed' });
+    return;
+  }
+  res.write(
+    `event: error\ndata: ${JSON.stringify({
+      reason: 'The draft did not finish.',
+      retryable: true,
+      code: 'unknown',
+      runId,
+    })}\n\n`,
+  );
+  res.end();
+}
+
 // POST /documents/generate — retired (T-443, Arjun 15 Oct 2026). Nothing in web
 // or the gateway calls it, and its legacy prompt could produce a wrong-law draft.
 // Answers 410 before any auth, privacy, template, Ink or validation step, and
@@ -2286,6 +3096,24 @@ router.get(
       }
     }
 
+    // T-705: the revision state, and the original quote the dialog's cost line
+    // needs. A failed read only hides the price (originalInk null); ids only.
+    const revisions = revisionState(doc);
+    const revisable = isRevisableDoc(doc);
+    let originalInk: number | null = null;
+    if (revisable) {
+      try {
+        originalInk = (
+          await originalDraftQuote(payload.sub, doc.runId as string, doc.rulePackId as string)
+        ).ink;
+      } catch (err) {
+        console.error(
+          `[drafting] Get document: could not read the original quote of document ${String(doc._id)}:`,
+          err instanceof Error ? err.name : 'UnknownError',
+        );
+      }
+    }
+
     res.json({
       _id: doc._id,
       title: displayTitle(doc.title, doc.courtName, courtLabel),
@@ -2312,6 +3140,12 @@ router.get(
       // T-381: the annexures card shows when both are true.
       courtDocument,
       hasParty,
+      // T-705: revisions so far, the limit, whether this draft can be revised,
+      // and the original quote (a later revision costs it; the first is free).
+      revisions,
+      revisionLimit: REVISION_LIMIT,
+      revisable,
+      originalInk,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
     });
