@@ -8,12 +8,12 @@ Deck (private link, draft): https://claude.ai/artifact/2KytBv2PpXgBWoHu4KRztu . 
 | 2 | 2 | "Drafting starts with an old file and a lot of retyping." (three steps: find old file, change every detail, read it all again) | Describes the problem, not Lawie. Ajay |
 | 3 | 3 | "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing." / "Every draft is yours to read, change or discard." | Ajay's exact disclaimer; trust line from T-511 |
 | 4 | 4 | Describe / Draft / Review steps, incl. "You see the Ink cost before it starts" | T-511 copy. Cost line PENDING Ajay (T-388 AC4) |
-| 5 | 5 | Drafts today: bail application (regular), bail application (anticipatory), temporary injunction (Order 39) | Priya's v1.2.0 list. Code-confirmed on main (Priya, 27 Oct); Anushka's prod test is the real proof, not run yet |
-| 6 | 6 | "The facts you give ... are carried into the draft as you gave them." "When something is missing, Lawie asks you." | Priya's feature list. Ajay |
-| 7 | 7 | "Amounts appear in figures and in words." "Each draft follows a template for its document type. You can edit any line." | Code-confirmed in v1.2.0 (amounts in words T-624, templates; Priya, 27 Oct). Ajay |
-| 8 | 8 | "A checks panel lists items for your review. Each one takes you to its paragraph." Example prompt (fictional) | T-511 text. Ajay confirms what the panel does |
+| 5 | 5 | Drafts today: bail application (regular), bail application (anticipatory), temporary injunction (Order 39) | Code-confirmed; Ajay signs on the day against prod |
+| 6 | 6 | "Lawie works from the facts you give. When something is missing, it asks you or marks the gap for you to fill." | Ajay, signed (30 Oct). Replaced the earlier two-card wording, which he did not sign |
+| 7 | 7 | "Amounts appear in figures and in words." "Each draft follows a template for its document type. You can edit any line." | Code-confirmed; Ajay signs on the day against prod |
+| 8 | 8 | "A checks panel lists items for your review. Each one takes you to its paragraph." Example prompt (fictional) | Ajay signs on the day against prod |
 | 9 | 9 | Privacy, both lines signed by Ajay word for word. M-LP-12f: "What you describe goes to an AI service to write the draft. The privacy policy says who receives it." AJ-DECK-P1 (signed for use now): "We do not log the text of your matters or drafts. Our logs and error reports record ids, counts and error codes; we are closing the last gaps where an error message could carry a fragment." Grievance Officer line | Arjun's stronger line is HELD until T-645 ships and he re-audits prod (then "anonymous ids" becomes "internal ids"). Grievance email: founder via Priya |
-| 10 | 10 | Free ₹0, 5 Ink on sign-up once email verified (lifetime). Solo ₹799 a month, 50 Ink. Top-ups ₹65/3, ₹199/10, ₹499/28; top-up Ink never expires. "Prices include GST." | Signed pricing. Vikram confirms current on the day |
+| 10 | 10 | Free ₹0, 5 Ink on sign-up once email verified (lifetime). Solo ₹799 a month, 50 Ink. Top-ups ₹65/3, ₹199/10, ₹499/28; top-up Ink never expires. "Prices include GST." | Ajay signs on the day against prod; Vikram confirms current |
 | 11 | 11 | How to start: lawie.in, verify email (5 Ink added), describe a matter you know | Landing copy |
 | 12 | 12 | "Start with a matter you already know." Demo offer for a bar association; footer is Ajay's disclaimer | Contact to fill in |
 
@@ -24,3 +24,6 @@ Deck (private link, draft): https://claude.ai/artifact/2KytBv2PpXgBWoHu4KRztu . 
 
 ## Known prod issue (Priya, 27 Oct)
 The O.39 cause title can show {plaintiff} and {defendant} unfilled. No screenshot of an O.39 cause title until it is fixed. Screenshots wait for Anushka's prod run. Grievance email and demo contact: Priya is asking the founder.
+
+## Ajay ruling, 30 Oct (handoff/legal/meera-t705-copy-and-deck-ajay.md)
+Slide 6 replaced with his sentence. Slides 5, 7, 8 and 10 are signed on the day, against prod. The Grievance line needs a name and contact (founder, via Priya). Everything else is signed.

@@ -17,3 +17,8 @@ Rules applied: no "free" except where it is the literal rule; the Ink cost is sh
 | Dashboard low-Ink nudge (unchanged) | | No change: revisions use the same cost line |
 
 For Ajay: everything above. The pricing FAQ answer is the public claim; the in-app strings follow it. For Rajesh: no new UI pattern; the InkCostLine slot carries the first two strings.
+
+## Ajay ruling, 30 Oct
+- In-app strings stay as merged; moving to this wording needs a ticket.
+- Help text, not-enough-Ink and failed lines: signed, with "You can revise a draft up to 10 times." added to the help text.
+- Pricing FAQ: signed with "You can revise a draft up to 10 times." added. HELD until Priya confirms the 10 against the code cap, and live only after Anushka's prod PASS.
