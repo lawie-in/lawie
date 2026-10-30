@@ -24,7 +24,11 @@ import request from 'supertest';
 import app from '../app';
 import redis from '../config/redis';
 import { TEMPLATE_CIVIL_PLAINT_SETTING } from '../config/catalogue/template-switches';
-import { isEmptyOrNonAnswer, isPartyNonAnswer } from '../config/intake/signed-confirm-messages';
+import {
+  isEmptyOrNonAnswer,
+  isPartyNonAnswer,
+  NON_ANSWER_WITH_TEXT_PARTY_LINE,
+} from '../config/intake/signed-confirm-messages';
 import { AppSetting } from '../models/AppSetting.model';
 import { Court } from '../models/Court.model';
 import { Generation } from '../models/Generation.model';
@@ -340,7 +344,10 @@ describe('T-668c B2: AJ-668d generic party items on a court document', () => {
         expect(b.confirm_blockers).toContain('parties');
         expect(b.confirm_missing_party_keys).toEqual([FIXED_KEYS.otherParty]);
         expect(b.ledger_given_keys ?? []).not.toContain(FIXED_KEYS.otherParty);
-        expect(b.confirm_message).toBe(OTHER_LINE);
+        // AJ-668e: a non-answer followed by text gets the new signed line; a bare one keeps OTHER_LINE
+        expect(b.confirm_message).toBe(
+          v === 'Defendant: Not known' ? OTHER_LINE : NON_ANSWER_WITH_TEXT_PARTY_LINE,
+        );
       }
     },
   );
@@ -730,7 +737,7 @@ describe('T-668c D3: run 5c on the generic path (fixed.other_party), real routes
     expect(typed.body.brief.can_confirm).toBe(false);
     expect(typed.body.brief.confirm_blockers).toContain('parties');
     expect(typed.body.brief.confirm_missing_party_keys).toContain(FIXED_KEYS.otherParty);
-    expect(typed.body.brief.confirm_message).toBe(OTHER_LINE);
+    expect(typed.body.brief.confirm_message).toBe(NON_ANSWER_WITH_TEXT_PARTY_LINE); // AJ-668e
     const res = await request(app)
       .post('/generate-from-brief')
       .set(headers())

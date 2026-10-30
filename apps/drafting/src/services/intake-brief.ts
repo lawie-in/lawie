@@ -24,10 +24,12 @@ import {
   GENERIC_PARTY_LINE_OVERRIDES,
   isEmptyOrNonAnswer,
   isNonAnswerPartyPack,
+  isNonAnswerWithText,
   isNoFactGuardedField,
   isPartyNameGuardedField,
   isPartyNonAnswer,
   isO39RequiredField,
+  NON_ANSWER_WITH_TEXT_PARTY_LINE,
   O39_REQUIRED_FIELDS,
   requiredFieldBlockers,
   signedConfirmMessage,
@@ -1531,8 +1533,19 @@ function partyLabel(label: string): string {
  * form route: the field's signed override (AJ-668-M5a, the generic
  * person-or-authority field), else the pack's signed line (T-661, T-650 (3h)),
  * else the T-127 line.
+ *
+ * AJ-668e: when the party's value is given and is a non-answer followed by more
+ * text (isNonAnswerWithText, e.g. `Not known (buyer under the sale deed)`), the
+ * signed NON_ANSWER_WITH_TEXT_PARTY_LINE instead. A bare non-answer or an empty
+ * value keeps the lines above.
  */
-export function partyConfirmLine(packId: string | null, key: string, label: string): string {
+export function partyConfirmLine(
+  packId: string | null,
+  key: string,
+  label: string,
+  value?: unknown,
+): string {
+  if (isNonAnswerWithText(value)) return NON_ANSWER_WITH_TEXT_PARTY_LINE;
   if (Object.prototype.hasOwnProperty.call(GENERIC_PARTY_LINE_OVERRIDES, key)) {
     return GENERIC_PARTY_LINE_OVERRIDES[key];
   }
@@ -1972,7 +1985,16 @@ function confirmState(
     if (o39) {
       // AJ-644-M1's lines, in O39_REQUIRED_FIELDS order (plaintiff, then defendant).
       const missingNames = new Set(missingParties.map((i) => lastSegment(i.key)));
-      const partyBlockers = requiredFieldBlockers({}).filter((b) => missingNames.has(b.key));
+      // AJ-668e: the missing parties' values, so a non-answer followed by more
+      // text gets the signed AJ-668e line; which parties block is unchanged.
+      const partyValues: Record<string, unknown> = {};
+      for (const i of missingParties) {
+        const name = lastSegment(i.key);
+        if (!(name in partyValues)) partyValues[name] = i.value;
+      }
+      const partyBlockers = requiredFieldBlockers(partyValues).filter((b) =>
+        missingNames.has(b.key),
+      );
       const partyLines = partyBlockers.map((b) => b.en);
       // The item keys, in the order of their lines.
       partyKeys = partyBlockers.flatMap((b) =>
@@ -1986,7 +2008,13 @@ function confirmState(
       confirm_message = courtLine;
     } else if (missingParties.length > 0) {
       // T-661: the pack's signed line when Ajay signed one (T-650 (3h)), else the T-127 line.
-      confirm_message = partyConfirmLine(packId, missingParties[0].key, missingParties[0].label);
+      // AJ-668e: a non-answer followed by more text gets the signed AJ-668e line.
+      confirm_message = partyConfirmLine(
+        packId,
+        missingParties[0].key,
+        missingParties[0].label,
+        missingParties[0].value,
+      );
     }
     // T-668: on these packs the screen follows the service's missing party keys
     // (a non-answer counts), in item order; empty (so absent) when none is missing.
