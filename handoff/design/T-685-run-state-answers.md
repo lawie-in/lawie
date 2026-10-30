@@ -83,3 +83,9 @@ It means the **15-minute JWT** (and any 401 the client meets when it reconnects 
 ## File list
 
 Send me the list after you have read this, before the developer starts: expected NEW `services/v3/{orchestrator,run.model,run.service,stages}.ts` and their tests; `documents.routes.ts` generate handler (the call-out only); `ledger.service.ts` 90–112 retirement + its tests; `extractor.service.ts` counter read-through; `app-settings.service.ts` one optional key; `credits.service.ts` only if `releaseInk` is not a no-op on a missing hold; one web test. `ai.service.ts`: exports only, or stop and ask.
+
+## 11. Cost summing and two file boundaries (Arjun, 30 Oct 2026, after the file list)
+
+- The orchestrator **sums step usage itself** from what each step returns. No hook on `logLlmCall`; no change to `llm-usage.ts` or `run-context.ts`. The cap check belongs in the step's own control flow (§7), not in a best-effort logger.
+- `ai.service.ts`: **export or return usage only.** Anything more than a return value or an export of an existing function: stop and ask.
+- `resolveRun` (documents.routes 373–407) is **read-only** unless I approve a described change first.
