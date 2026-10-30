@@ -1,6 +1,6 @@
 # T-685 — v3 P1: resumable run state (orchestrator A)
 
-Status: ASSIGNED vishal 30 Oct 2026 (full chain; files after Explore). Was: backlog, drafting v3 Phase 1 (ADR handoff/design/ADR-drafting-v3.md, Arjun signed 26 Oct). Behind feature.drafting_v3_stage. Founder re-plan 29 Oct 2026.
+Status: PARKED 30 Oct 2026 (vishal, feature/t-685-v3-run-state @ e8329004; nothing merged). Both §15 blockers fixed (untested). Resume: (1) fresh tester with Arjun's named tests (capped-run-refuses-on-resume, v3-only-intake-runs-verify), re-point the capped-resume test, then the full suite; (2) fresh reviewer (round 1 does not count as a strike); (3) Ajay checks the ai.service.ts diff at the merge SHA; (4) doc-writer (gaps: repair.2 route test, the design doc still says orchestrator.ts); (5) slot, merge, CI. Was: ASSIGNED vishal 30 Oct 2026 (full chain; files after Explore). Was: backlog, drafting v3 Phase 1 (ADR handoff/design/ADR-drafting-v3.md, Arjun signed 26 Oct). Behind feature.drafting_v3_stage. Founder re-plan 29 Oct 2026.
 
 ## Acceptance criteria
 1. A run document: step, ledger version, outputs by step id. Every step is idempotent and persisted.
