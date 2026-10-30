@@ -570,3 +570,135 @@ describe('T-700 AJ-700-BC (3): Memo roles from the court rule', () => {
     },
   );
 });
+
+// ── AJ-700c (1): the civil/criminal pair resolves on every role key ───────────
+
+describe('T-700 AJ-700c (1): every Memo role cell, by pack kind', () => {
+  const cells = (b: Built) =>
+    [...part(b, 'Memo of Parties').matchAll(/<tr>\s*<td>([^<]*)<\/td>/g)].map((m) => m[1].trim());
+
+  it.each(['delhi_district', 'up_district'])(
+    'vakalatnama at %s (civil): the Memo roles are exactly Plaintiff, Defendant',
+    (court) => {
+      const b = build('vakalatnama', 'district_court', { court_id: court });
+      expect(cells(b)).toEqual(['Plaintiff', 'Defendant']);
+      expect(b.html).not.toMatch(/\(civil\)|\(criminal\)/);
+    },
+  );
+
+  it.each(['delhi_district', 'up_district'])(
+    '%s: discharge_application and criminal_revision keep exactly Applicant, Opposite Party',
+    (court) => {
+      for (const pack of ['criminal_revision', 'discharge_application']) {
+        const b = build(pack, 'district_court', { ...CRIMINAL_FORM, court_id: court });
+        expect(cells(b)).toEqual(['Applicant', 'Opposite Party']);
+      }
+    },
+  );
+
+  it.each([
+    ['delhi_district', ['Applicant', 'Respondent']],
+    ['up_district', ['Applicant', 'Opposite Party']],
+  ])('bail_regular at %s: the signed labels are unchanged', (court, expected) => {
+    const b = build('bail_regular', 'district_court', { ...CRIMINAL_FORM, court_id: court });
+    expect(cells(b)).toEqual(expected);
+  });
+});
+
+// ── AJ-700c (2): a guided brief or no pack id takes its set from the brief kind ─
+
+describe('T-700 AJ-700c (2): the set of a guided or pack-less document', () => {
+  const CRIMINAL_HEADINGS = [
+    'Memo of Parties',
+    'List of Dates and Chronology of Events',
+    'Index of Documents Annexed',
+    'Vakalatnama',
+    'Court Fee Paid Statement',
+    'Affidavit',
+  ];
+  const noPack = (briefKind: string | undefined, packId = '') =>
+    buildAnnexuresHtml({
+      formData: { court_id: 'jharkhand_hc', place: 'Patna', ...CRIMINAL_FORM },
+      bodyParaCount: 12,
+      advocateName: 'Adv. Test',
+      courtType: 'sessions',
+      ...(packId ? { rulePackId: packId } : {}),
+      ...(briefKind !== undefined ? { briefKind } : {}),
+    });
+
+  it('guided with briefKind "none": Memo + Index only', () => {
+    expect(headings(noPack('none', 'guided'))).toEqual([
+      'Memo of Parties',
+      'Index of Documents Annexed',
+    ]);
+  });
+
+  it.each([['guided'], ['']])(
+    'pack id "%s" with briefKind bail_regular: the criminal set',
+    (packId) => {
+      const b = noPack('bail_regular', packId);
+      expect(headings(b)).toEqual(CRIMINAL_HEADINGS);
+      expect(labels(b)).toBe('ABCDEF');
+    },
+  );
+
+  it('no pack id with briefKind plaint_recovery (a civil kind): Memo + Index only', () => {
+    expect(headings(noPack('plaint_recovery'))).toEqual([
+      'Memo of Parties',
+      'Index of Documents Annexed',
+    ]);
+  });
+
+  it('no pack id and no briefKind: Memo + Index only', () => {
+    expect(headings(noPack(undefined))).toEqual(['Memo of Parties', 'Index of Documents Annexed']);
+  });
+
+  it('a stored pack id wins: written_statement with briefKind bail_regular stays the pleading set', () => {
+    const b = noPack('bail_regular', 'written_statement');
+    expect(headings(b)).toContain('VERIFICATION');
+    expect(headings(b)).not.toContain('Affidavit');
+  });
+});
+
+// ── AJ-700c (3): numbering uses the pack's own roles ──────────────────────────
+
+describe('T-700 AJ-700c (3): numbered parties', () => {
+  const o39 = (defendants: unknown) =>
+    build(
+      'temporary_injunction_o39',
+      'high_court',
+      { court_id: 'jharkhand_hc' },
+      { partyValues: { plaintiff_name: 'A Kumar', defendant_name: defendants } },
+    );
+
+  it('O.39 with two defendants: "Defendant/Non-Applicant No. 1" and "No. 2", the plaintiff un-numbered', () => {
+    const rows = memoRows(o39(['B One', 'B Two']));
+    expect(rows.map((r) => r.label)).toEqual([
+      'Plaintiff/Applicant',
+      'Defendant/Non-Applicant No. 1',
+      'Defendant/Non-Applicant No. 2',
+    ]);
+    expect(rows[1].cell).toContain('B One');
+    expect(rows[2].cell).toContain('B Two');
+  });
+
+  it('O.39 with one defendant: "Defendant/Non-Applicant", no number', () => {
+    const labelsOf = memoRows(o39('B One')).map((r) => r.label);
+    expect(labelsOf).toEqual(['Plaintiff/Applicant', 'Defendant/Non-Applicant']);
+    expect(labelsOf.join('|')).not.toMatch(/No\./);
+  });
+
+  it('a pleading with two defendants still prints "Defendant No. 1" and "Defendant No. 2"', () => {
+    const b = build(
+      'plaint_recovery',
+      'district_court',
+      { court_id: 'delhi_district' },
+      { partyValues: { plaintiff_name: 'Raj Mehta', defendant_name: ['Kiran Bose', 'Asha Bose'] } },
+    );
+    expect(memoRows(b).map((r) => r.label)).toEqual([
+      'Plaintiff',
+      'Defendant No. 1',
+      'Defendant No. 2',
+    ]);
+  });
+});
