@@ -15,7 +15,7 @@ Express 4 + Mongoose 8 services. Next.js 16 + React 19 + Tailwind 3 web. Redis v
 
 ## Commands
 
-- Test (Jest + ts-jest, matches `**/__tests__/**/*.test.ts`, plus `.tsx` in web; two tiers, T-688): `yarn workspace @lawie/<name> test:sanity` is the sanity tier, which CI runs on every push and a lead runs before merging together with their own ticket's tests; `yarn workspace @lawie/<name> test` is the full tier with coverage (nightly and on `release/**`). For an ad-hoc run add `--selectProjects full` (`yarn workspace @lawie/<name> jest --selectProjects full <path>`); a bare `jest <path>` runs every sanity-listed file twice. Build `@lawie/shared` first, as CI does. Details: `.claude/docs/coverage.md`.
+- Test (Jest + ts-jest, matches `**/__tests__/**/*.test.ts`, plus `.tsx` in web; two tiers, T-688): `yarn workspace @lawie/<name> test:sanity` is the sanity tier, which CI runs on every push and a lead runs before merging together with their own ticket's tests; `yarn workspace @lawie/<name> test` is the full tier with coverage (nightly and on `release/**`). For an ad-hoc run add `--selectProjects full` (`yarn workspace @lawie/<name> jest <path> --coverage=false --selectProjects full` (paths first: `--selectProjects` takes a list and would swallow the path)); a bare `jest <path>` runs every sanity-listed file twice. Build `@lawie/shared` first, as CI does. Details: `.claude/docs/coverage.md`.
 - Lint: `yarn workspace @lawie/<name> lint` — runs `eslint --fix` and **rewrites files**. Never run this from a read-only role.
 - Typecheck/build: `yarn workspace @lawie/<name> build` — runs `tsc`.
 - Scripts/hook tests: `yarn test:scripts` (Jest, `scripts/__tests__`); require `Run scripts tests` (shown on PRs as `Scripts tests / Run scripts tests`) (T-593).
