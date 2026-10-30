@@ -113,7 +113,7 @@ yarn workspace @lawie/drafting seed:setting ai.model.fact_checker claude-haiku-4
 ```
 
 Models are set per role (T-684), one `appsettings` row each: `ai.model.matcher`, `ai.model.extractor`, `ai.model.drafter`, `ai.model.fact_checker`, `ai.model.legal_reviewer` and `ai.model.language`. There is no default in code. Three are **required**: `drafter`, `extractor` and `fact_checker`. When one has neither its new key nor its legacy key, drafting logs a boot warning and `/health` lists the missing new key names under `config_warnings` (update any alert that matched the old names). The other three are optional: no call reads `legal_reviewer` or `language` yet, and `matcher` falls back to `ai.model.extractor`, then to `ai.intake_model`. The matcher call site is not wired yet, so intake matching still uses the extractor.
-The admin AI page (`/admin/ai-config`) shows the same list, marks the required roles, and warns when a required one is missing.
+The admin AI page (`/admin/ai-config`) shows the same list, marks the required roles, and warns when a required one is missing. Its Copy action never overwrites: it only creates the key if it is missing (`PUT /admin/app-settings/:key?ifAbsent=1`), and if someone set it meanwhile the page says so and leaves it as it is.
 
 Legacy keys, for one release only: `ai.drafting_model` (now `ai.model.drafter`), `ai.intake_model` (now `ai.model.extractor`) and `ai.preflight_model` (now `ai.model.fact_checker`). They are read only when the new key has no row; the new key always wins. A deprecation warning is logged once per legacy key per process (key name only). While only the old keys exist, each model call costs one extra Mongo read. To copy them across, run the helper from `apps/drafting`, dry run first:
 
