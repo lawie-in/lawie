@@ -437,3 +437,6 @@ Asked by the founder in Nikhil's chat ("run the model-settings migration… acti
 - It runs as ubuntu with the env loaded like deploy, from `apps/drafting`: `npx --no ts-node --transpile-only scripts/migrate-model-settings.ts`, plus `--apply` only when mode=apply. It refuses if the script is not on the box.
 - The T-684 script copies legacy `ai.{intake,drafting,preflight}_model` to `ai.model.{extractor,drafter,fact_checker}` with an insert-only upsert. It never overwrites or deletes, and prints only key names, counts and the database name.
 - Default stays 13; run it pinned with `--document-version 22`.
+
+### SSM version 23 (30 Oct 2026, 10:37 UTC, Nikhil): Active, NOT default
+Fix to v22's `migrate-model-settings`. In v22, `mode=apply` ran as a DRY RUN: the `--apply` flag passed as an argument through `sudo -u ubuntu -i bash -s -- "$FLAG"` never reached the script (it reported "Dry run" with no usage error), so nothing was written. The cause on the box is not confirmed; the same chain works locally. v23 has one heredoc per mode, with the flag written literally (`… migrate-model-settings.ts --apply` in the apply branch). It calls `npx --no -- ts-node`, so npm can never take a flag, and echoes `script args:` before running. Nothing else changes. JSON: `handoff/ops/runbooks/lawie-prod-ops-v23.json`. Default stays 13; run it pinned with `--document-version 23`.
