@@ -1,6 +1,6 @@
 # T-681b: Cache the intake `match` call's system/catalogue block
 
-Status: backlog (small, not urgent). Raised 29 Oct 2026 by Arjun from Nikhil's prod token data (handoff/finance/drafting-model-opus-vs-sonnet.md section 2a).
+Status: MERGED into develop_staging 78dab688 (30 Oct 2026, CI green). Was: backlog (small, not urgent). Raised 29 Oct 2026 by Arjun from Nikhil's prod token data (handoff/finance/drafting-model-opus-vs-sonnet.md section 2a).
 
 ## Problem
 Every intake's `match` call sends about 7.2k uncached input tokens (the system prompt plus the catalogue). A Haiku cache read costs one tenth of an uncached read.

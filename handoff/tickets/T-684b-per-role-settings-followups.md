@@ -1,6 +1,6 @@
 # T-684b: Per-role model settings follow-ups
 
-Status: item 1 READY (shashank, fix/t-684b-insert-only-copy @ 08dc0bad, 30 Oct 2026); items 2-8 backlog. Raised 29 Oct 2026 by Kunal at T-684 READY (0896cfa9)
+Status: item 1 MERGED into develop_staging cb7e4f80 (30 Oct 2026); item 8 MERGED 8ee8b64c (30 Oct 2026), so item 6 (prod migration, Nikhil, founder go) is unblocked; items 2-7 backlog. Raised 29 Oct 2026 by Kunal at T-684 READY (0896cfa9)
 Priority: P2. The legacy-key removal waits until T-684 has been on prod for one release.
 
 1. The admin AI settings page's Copy action should use an insert-only PUT, so it never overwrites an existing ai.model.* key.

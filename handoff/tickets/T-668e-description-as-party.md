@@ -1,6 +1,6 @@
 # T-668e: Accept a description as a valid party in the brief
 
-Status: backlog (not assigned), raised 29 Oct 2026 (Anushka run 5d Minor, via Arjun)
+Status: MERGED into develop_staging c0444f69 (30 Oct 2026, CI green). Was: backlog (not assigned), raised 29 Oct 2026 (Anushka run 5d Minor, via Arjun)
 Priority: P3, small, not urgent. Ajay M5b applies.
 
 ## Problem
