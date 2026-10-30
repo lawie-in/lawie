@@ -371,6 +371,19 @@ function stripQuoteEdges(q: string): string {
 }
 
 /**
+ * A model quote tested as a non-answer: as given, or without its edge
+ * punctuation ("Not known." -> "Not known", "nil." -> "nil"), the same strip
+ * carriesNonAnswer uses. Only a quote with a letter is stripped, so "." is
+ * never emptied into a non-answer; "-" and "?" are tested as given.
+ */
+function isNonAnswerQuote(spec: FieldSpec, quote: string): boolean {
+  if (isNonAnswerFor(spec, quote)) return true;
+  if (!/\p{L}/u.test(quote)) return false;
+  const bare = stripQuoteEdges(quote.normalize('NFC').trim());
+  return bare !== quote && isNonAnswerFor(spec, bare);
+}
+
+/**
  * SHOULD 4: the model's named non-answer stands in that turn's text as whole
  * words (any script), edge punctuation off. Not the signed tail: "पता नहीं
  * sir" is still a non-answer. A quote with no letter must be the whole text.
@@ -734,7 +747,7 @@ export function validateExtraction(parsed: unknown, ctx: ValidateContext): Valid
     // Ajay rule 4: a non-answer is the user's words, so the QUOTE decides it
     // (review round 1, finding 2). A non-answer VALUE on a quote that is not
     // one is the model's, never a reason to clear a fact: no fact, asked again.
-    if (isNonAnswerFor(spec, quote)) {
+    if (isNonAnswerQuote(spec, quote)) {
       addNonAnswer(spec, src, quote);
       continue;
     }
@@ -780,7 +793,7 @@ export function validateExtraction(parsed: unknown, ctx: ValidateContext): Valid
   for (const raw of Array.isArray(parsed.non_answers) ? parsed.non_answers : []) {
     const hit = locate(raw);
     if (!hit) continue;
-    if (isNonAnswerFor(hit.spec, hit.quote)) addNonAnswer(hit.spec, hit.src, hit.quote);
+    if (isNonAnswerQuote(hit.spec, hit.quote)) addNonAnswer(hit.spec, hit.src, hit.quote);
     else {
       drop('not_a_non_answer');
       unresolved.add(hit.spec.item.key);
