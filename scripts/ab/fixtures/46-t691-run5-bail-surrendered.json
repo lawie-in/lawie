@@ -57,7 +57,7 @@
       },
       {
         "any_of": ["prolonged custody"],
-        "why": "skeleton-bail_regular-signed rules (T-359): custody length has no clause unless the advocate gave it, and the prolonged_custody ground was not ticked"
+        "why": "T-359 (skeleton-bail_regular-signed rules): custody length has no clause unless the advocate gave it, and the prolonged_custody ground was not ticked"
       },
       {
         "any_of": ["[To be confirmed: Section 439"],

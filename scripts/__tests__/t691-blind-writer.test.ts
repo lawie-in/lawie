@@ -276,8 +276,8 @@ describe('writeBlind', () => {
     // and the file D0k holds the title of the k-th shuffled draft
     ids.forEach((id, k) => {
       const text = fs.readFileSync(path.join(r.scoringDir, `${id}.md`), 'utf8');
-      const src = drafts.find((d) => d.fixtureId === expected[k])!;
-      expect(text).toContain(src.title);
+      const src = drafts.find((d) => d.fixtureId === expected[k]);
+      expect(text).toContain(src?.title ?? 'MISSING');
     });
   });
 
@@ -344,6 +344,15 @@ describe('writeBlind', () => {
     expect(raw).not.toMatch(/fx-\d|run-id-|claude/i);
   });
 
+  it('optional spend and intakeSpend pass through to metrics.json by blind id', () => {
+    const spend = { usd: 0.5, inr: 44 };
+    const intakeSpend = { usd: 0.1, inr: 8.8 };
+    const r = write([draft(1, { metrics: metrics({ spend, intakeSpend }) })], 2, 'spend');
+    const m = JSON.parse(fs.readFileSync(r.metricsPath, 'utf8'));
+    expect(m.D01.spend).toEqual(spend);
+    expect(m.D01.intakeSpend).toEqual(intakeSpend);
+  });
+
   it('withheld and failed drafts are counted, rendered, and flagged in metrics', () => {
     const drafts = [
       draft(1),
@@ -381,9 +390,9 @@ describe('writeBlind', () => {
     expect(() => unseal(r.keyPath, WRONG)).toThrow();
     const key = unseal(r.keyPath, PASS);
     for (const e of Object.values(key.entries)) {
-      const src = drafts.find((d) => d.fixtureId === e.fixtureId)!;
-      expect(e.model).toBe(src.model);
-      expect(e.runId).toBe(src.runId);
+      const src = drafts.find((d) => d.fixtureId === e.fixtureId);
+      expect(e.model).toBe(src?.model);
+      expect(e.runId).toBe(src?.runId);
     }
     // the clear file text does not contain the model
     expect(fs.readFileSync(r.keyPath, 'utf8')).not.toMatch(/claude|opus|sonnet|run-id/i);

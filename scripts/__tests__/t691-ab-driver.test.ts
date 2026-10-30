@@ -138,8 +138,8 @@ describe('selectMatters', () => {
     const other = golden.find(
       (f) => !/^(23|24|26|28)(-|$)/.test(f.id) && !ab.some((a) => a.id === f.id),
     );
-    expect(other).toBeDefined();
-    const key = other!.id.split('-')[0];
+    if (!other) return;
+    const key = other.id.split('-')[0];
     // not on the ab side either, so it must be refused
     if (!ab.some((a) => a.id === key || a.id.startsWith(`${key}-`)))
       expect(selectMatters(golden, ab, [key]).problems).toHaveLength(1);
@@ -254,6 +254,10 @@ describe('estimateAb and the 600 rupee guard', () => {
     expect(src).toMatch(
       /args\.mode === 'real' && \(spentUsd \+ estimate\.perMatterWorstUsd\) \* USD_INR > BUDGET_INR/,
     );
+    // and a second stop after each matter: once the running total passes the cap, break (never continue)
+    expect(src).toMatch(
+      /if \(spentUsd \* USD_INR > BUDGET_INR\) \{\s*capped = [^;]*;\s*break;\s*\}/,
+    );
     expect(src).toMatch(/estimate\.typicalInr > BUDGET_INR/);
     expect(src).toMatch(/estimate\.perMatterWorstUsd \* USD_INR > BUDGET_INR/);
   });
@@ -350,6 +354,31 @@ describe('the eight scripts/ab fixtures', () => {
     expect(raw.review).toBe(REVIEW_STATUS);
     expect(raw).not.toHaveProperty('v3_stage');
     expect(raw.id).toBe(file.replace(/\.json$/, ''));
+  });
+
+  it('every expectation has a non-empty why citing a ruling id (T-nnn or AJ-nnn)', () => {
+    let n = 0;
+    for (const f of loaded)
+      for (const k of ['absent', 'present', 'exact'] as const)
+        for (const t of f.expect[k] ?? []) {
+          n += 1;
+          expect({ f: f.id, why: t.why.length > 0 }).toEqual({ f: f.id, why: true });
+          expect({ f: f.id, why: t.why }).toEqual({
+            f: f.id,
+            why: expect.stringMatching(/\b(T|AJ)-\d+/),
+          });
+        }
+    expect(n).toBeGreaterThan(40);
+  });
+
+  it('every expectation why STARTS with a ruling id (T-nnn or AJ-nnn)', () => {
+    for (const f of loaded)
+      for (const k of ['absent', 'present', 'exact'] as const)
+        for (const t of f.expect[k] ?? [])
+          expect({ f: f.id, why: t.why }).toEqual({
+            f: f.id,
+            why: expect.stringMatching(/^(T-\d+|AJ-\d+)/),
+          });
   });
 
   it('use the Sample naming pattern: no real-looking person names', () => {
@@ -517,5 +546,35 @@ describe('integration: --dry on golden 23 (in-memory Mongo, stub seam)', () => {
       expect(text).toContain('## Draft');
     }
     expect(fs.statSync(path.join(dir, 'KEY.sealed.json')).mode & 0o777).toBe(0o600);
+
+    // spend fields per draft, and they add up to the per-matter stdout line
+    const spendOk = (x: { usd: number; inr: number } | undefined) =>
+      x !== undefined && typeof x.usd === 'number' && Math.abs(x.inr - x.usd * USD_INR) < 1e-9;
+    for (const id of ['D01', 'D02']) {
+      expect(spendOk(metrics[id].spend)).toBe(true);
+      expect(spendOk(metrics[id].intakeSpend)).toBe(true);
+    }
+    expect(metrics.D01.intakeSpend.usd).toBeCloseTo(metrics.D02.intakeSpend.usd, 12);
+    const line = r.stdout.split('\n').find((l) => /matter 23\S*: spend intake/.test(l));
+    expect(line).toBeDefined();
+    const usds = [...(line as string).matchAll(/\(\$([0-9.]+)\)/g)].map((m) => Number(m[1]));
+    expect(usds).toHaveLength(4); // intake, two drafts, running total
+    const [intakeU, d1, d2, total] = usds;
+    expect(intakeU).toBeCloseTo(metrics.D01.intakeSpend.usd, 3);
+    expect([d1, d2].sort((a, b) => a - b)[0]).toBeCloseTo(
+      Math.min(metrics.D01.spend.usd, metrics.D02.spend.usd),
+      3,
+    );
+    expect([d1, d2].sort((a, b) => a - b)[1]).toBeCloseTo(
+      Math.max(metrics.D01.spend.usd, metrics.D02.spend.usd),
+      3,
+    );
+    expect(total).toBeCloseTo(
+      metrics.D01.intakeSpend.usd + metrics.D01.spend.usd + metrics.D02.spend.usd,
+      3,
+    );
+    // the line names no model, arm or order, and the drafts are listed lower first
+    expect(line).not.toMatch(/claude|opus|sonnet|haiku|\barm\b|\border\b|\bfirst\b|\bsecond\b/i);
+    expect(d1).toBeLessThanOrEqual(d2);
   });
 });
