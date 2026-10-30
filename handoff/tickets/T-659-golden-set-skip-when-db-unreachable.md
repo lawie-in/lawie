@@ -13,3 +13,6 @@ The "Golden set — Drafting (real model)" run on 93896c47 failed with exit 4: A
 
 ## Separate (founder, not urgent)
 The permanent fix needs Atlas access. If the GOLDEN_SET cluster holds only fixtures: a 0.0.0.0/0 entry with a dedicated readWrite user on the golden DB only. If the cluster is shared with develop or prod: a separate free-tier fixture cluster instead. Arjun is asking the founder.
+
+## Ruling (Priya, 30 Oct 2026; Arjun FYI)
+workflow_dispatch FAILS red like the nightly. golden-set.yml has no PR trigger, so the skip applies to push only.
