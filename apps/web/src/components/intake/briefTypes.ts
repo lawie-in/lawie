@@ -88,6 +88,33 @@ export interface LooseDate {
   meaning: string | null;
 }
 
+/** T-690b: one soft finding on the brief. `text` is signed copy, shown as sent. */
+export interface SoftFinding {
+  rule_id: string;
+  text: string;
+}
+
+/**
+ * T-690b: the soft findings to show, one per screen each: entries not in shape or
+ * with empty text are dropped, and a repeat (same rule_id, or same text) is shown once.
+ */
+export function shownSoftFindings(raw: unknown): SoftFinding[] {
+  if (!Array.isArray(raw)) return [];
+  const out: SoftFinding[] = [];
+  const ids = new Set<string>();
+  const texts = new Set<string>();
+  for (const f of raw) {
+    if (typeof f !== 'object' || f === null) continue;
+    const { rule_id, text } = f as Record<string, unknown>;
+    if (typeof rule_id !== 'string' || typeof text !== 'string' || text.trim() === '') continue;
+    if (ids.has(rule_id) || texts.has(text)) continue;
+    ids.add(rule_id);
+    texts.add(text);
+    out.push({ rule_id, text });
+  }
+  return out;
+}
+
 export interface Brief {
   kind: { id: string | null; name: string; court_document: boolean };
   court: BriefCourt;
@@ -105,6 +132,12 @@ export interface Brief {
   confirm_missing_party_keys?: string[];
   /** T-363 AC1: T-192's signed B2 line, when the brief's own s.138 dates give it. */
   date_check?: { line: 'B2'; text: string };
+  /**
+   * T-690b: soft findings the service puts on the brief (the written statement's
+   * over-90-days warning). `text` is Ajay's signed wording: shown verbatim, never
+   * reworded or cut. Absent when no warning applies.
+   */
+  soft_findings?: SoftFinding[];
   /**
    * T-655: the keys the service counts as given by the fact ledger, on every
    * pack. The screen uses this as its given set and does not judge the ledger
@@ -316,6 +349,12 @@ export interface DraftResult {
    * Null when the service sent none; the web app keeps no copy of the text.
    */
   disclaimer?: string | null;
+  /**
+   * T-690b/T-690c: the soft findings of the brief the draft was written from, read
+   * from the generate response's `done` event (`soft_findings`), never from the
+   * brief on screen. Absent when it sent none.
+   */
+  softFindings?: SoftFinding[];
   /**
    * T-373 (ADR-025 D1): the clauses the renderer printed, as the service sent them.
    * Present only for a D1 pack; the checks panel is then built from this list.

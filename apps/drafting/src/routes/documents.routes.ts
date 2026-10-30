@@ -2158,6 +2158,11 @@ router.post(
         // T-577: only when the pack asked for a count. inkDebited (T-545,
         // added by sendDone) is the settled figure, at most inkQuoted.
         ...(runQuote.asks ? { inkQuoted: runQuote.ink, paragraphsDelivered } : {}),
+        // T-690c: the soft findings of the brief this draft was written from (the
+        // one rebuilt above from the sent values). A warning only. Absent when none.
+        ...(brief.soft_findings && brief.soft_findings.length > 0
+          ? { soft_findings: brief.soft_findings }
+          : {}),
       });
     });
   },
