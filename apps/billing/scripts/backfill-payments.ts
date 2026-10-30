@@ -155,7 +155,10 @@ async function subscriptionContext(entity: Entity): Promise<PaymentContext | nul
 export interface BackfillDeps {
   /** Razorpay subscription id of a plan charge (payment entity), or null. */
   subscriptionIdFor: (entity: Entity) => Promise<string | null>;
-  /** Captured plan charges in total for a subscription (default: paid Razorpay invoices). */
+  /**
+   * Paid Razorpay invoices of a subscription that carry a payment id. Combined with the
+   * payment ids known for it (capturedPlanCharges); never used alone.
+   */
   countCapturedPlanCharges: (razorpaySubscriptionId: string) => Promise<number>;
   log: (line: string) => void;
 }
@@ -233,12 +236,33 @@ export async function runPaymentsBackfill(
   const ambiguousIds: string[] = [];
   const refundedKeptInkIds: string[] = [];
 
+  // Pass 1 (Arjun review, must-fix a): resolve each in-scope payment once, and collect the
+  // captured / refunded payment ids each subscription has among the Razorpay entities.
+  const resolved = new Map<string, { ctx: PaymentContext | null; subId: string | null }>();
+  const entityIdsBySub = new Map<string, Set<string>>();
+  for (const p of inScope) {
+    const id = String(p.id ?? '');
+    if (!id) continue;
+    let ctx = await resolvePaymentContext(p);
+    if (!ctx) ctx = await subscriptionContext(p);
+    const subId =
+      ctx?.kind === 'plan'
+        ? (ctx.razorpaySubscriptionId ?? (await deps.subscriptionIdFor(p)))
+        : null;
+    resolved.set(id, { ctx, subId });
+    if (subId) {
+      const set = entityIdsBySub.get(subId) ?? new Set<string>();
+      set.add(id);
+      entityIdsBySub.set(subId, set);
+    }
+  }
+
   for (const p of inScope) {
     const id = String(p.id ?? '');
     if (!id) continue;
     const existing = await Payment.findOne({ razorpayPaymentId: id }, { inkUnits: 1 }).lean();
-    let ctx = await resolvePaymentContext(p);
-    if (!ctx) ctx = await subscriptionContext(p);
+    let ctx = resolved.get(id)?.ctx ?? null;
+    let attributedNow = false;
     if (!ctx || !ctx.userId || !ctx.kind) {
       counts.unattributed += 1;
       unattributedIds.push(id);
@@ -257,33 +281,49 @@ export async function runPaymentsBackfill(
     // A plan charge with no payment-id-confirmed grant: the one-shot attribution. Top-ups
     // are never here (their Ink comes from the order's claim).
     if (ctx.kind === 'plan' && !((ctx.inkUnits ?? 0) > 0)) {
-      const subId = ctx.razorpaySubscriptionId ?? (await deps.subscriptionIdFor(p));
+      const subId = resolved.get(id)?.subId ?? null;
       let grant: { _id: unknown; delta: number } | null = null;
-      if (subId) {
-        const grants = await unstampedGrants(ctx.userId, subId);
-        const charges = grants.length === 1 ? await deps.countCapturedPlanCharges(subId) : 0;
-        const delta = grants[0]?.delta;
-        if (grants.length === 1 && charges === 1 && typeof delta === 'number' && delta > 0) {
-          grant = { _id: grants[0]._id, delta };
+      try {
+        if (subId) {
+          const grants = await unstampedGrants(ctx.userId, subId);
+          const delta = grants[0]?.delta;
+          if (grants.length === 1 && typeof delta === 'number' && delta > 0) {
+            // Must-fix (b): any payment of S already carrying Ink holds a grant: ambiguous.
+            const inked = await Payment.exists({
+              razorpaySubscriptionId: subId,
+              inkUnits: { $gt: 0 },
+            });
+            const charges = inked
+              ? Number.POSITIVE_INFINITY
+              : await capturedPlanCharges(subId, entityIdsBySub.get(subId), deps);
+            if (charges === 1) grant = { _id: grants[0]._id, delta };
+          }
         }
-      }
-      if (grant && apply) {
-        // Stamp first, only if still empty; then the row. A rerun after a crash finds the
-        // stamp and confirms by payment id.
-        const db = mongoose.connection.db;
-        const stamped = db
-          ? await db.collection('inkledger').findOneAndUpdate(
-              {
-                _id: grant._id as mongoose.Types.ObjectId,
-                'metadata.razorpayPaymentId': { $in: [null] },
-              },
-              { $set: { 'metadata.razorpayPaymentId': id } },
-            )
-          : null;
-        if (!stamped) grant = null;
+        if (grant && apply) {
+          // Stamp first, only if still empty; then the row. A rerun after a crash finds the
+          // stamp and confirms by payment id.
+          const db = mongoose.connection.db;
+          const stamped = db
+            ? await db.collection('inkledger').findOneAndUpdate(
+                {
+                  _id: grant._id as mongoose.Types.ObjectId,
+                  'metadata.razorpayPaymentId': { $in: [null] },
+                },
+                { $set: { 'metadata.razorpayPaymentId': id } },
+              )
+            : null;
+          if (!stamped) grant = null;
+        }
+      } catch (err) {
+        // Condition 3: one payment's failure never aborts the run.
+        grant = null;
+        deps.log(
+          `ambiguous (error ${err instanceof Error ? err.name : 'unknown'}): payment ${id} subscription ${subId ?? 'unknown'}`,
+        );
       }
       if (grant) {
         counts.attributed += 1;
+        attributedNow = true;
         ctx = { ...ctx, inkUnits: grant.delta };
       } else {
         counts.ambiguous += 1;
@@ -296,13 +336,53 @@ export async function runPaymentsBackfill(
     }
 
     if (apply) {
-      const ok = await upsertPaymentFromEntity(p, ctx, 'backfill');
-      if (ok && !existing) counts.written += 1;
+      try {
+        const ok = await upsertPaymentFromEntity(p, ctx, 'backfill');
+        if (ok && !existing) counts.written += 1;
+      } catch (err) {
+        // Condition 3: logged with ids and the error class, counted ambiguous, run goes on.
+        if (!ambiguousIds.includes(id)) {
+          if (attributedNow) counts.attributed -= 1;
+          counts.ambiguous += 1;
+          ambiguousIds.push(id);
+        }
+        deps.log(
+          `ambiguous (write error ${err instanceof Error ? err.name : 'unknown'}): payment ${id}`,
+        );
+      }
     } else if (!existing) {
       counts.written += 1; // would write
     }
   }
   return { counts, unattributedIds, ambiguousIds, refundedKeptInkIds };
+}
+
+/**
+ * Must-fix (a): real captured plan charges of subscription S over all time =
+ *   max( paid Razorpay invoices of S that carry a payment id,
+ *        |distinct captured/refunded payment ids of S| )
+ * where the second set is the Razorpay entities this run resolved to S UNION the Payment
+ * rows with razorpaySubscriptionId S in a paid or refunded status. An invoice holds one
+ * payment id even when two charges were captured against it, so the invoice count alone
+ * under-counts exactly the duplicate-charge case.
+ */
+async function capturedPlanCharges(
+  subId: string,
+  entityIds: Set<string> | undefined,
+  deps: BackfillDeps,
+): Promise<number> {
+  const ids = new Set<string>(entityIds ?? []);
+  const rows = await Payment.find(
+    {
+      razorpaySubscriptionId: subId,
+      razorpayPaymentId: { $type: 'string' },
+      status: { $in: ['paid', 'partly_refunded', 'refunded'] },
+    },
+    { razorpayPaymentId: 1 },
+  ).lean();
+  for (const r of rows) if (r.razorpayPaymentId) ids.add(r.razorpayPaymentId);
+  const invoices = await deps.countCapturedPlanCharges(subId);
+  return Math.max(invoices, ids.size);
 }
 
 /** The Razorpay subscription id of a plan charge: its own field, else its invoice's (GET). */

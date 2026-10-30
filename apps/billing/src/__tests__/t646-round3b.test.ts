@@ -9,6 +9,8 @@ import { findSubscriptionPlan } from '../config/credit-skus';
 import logger from '../config/logger';
 import { Payment } from '../models/Payment.model';
 import { User } from '../models/User.model';
+import { GrantClaimBusyError } from '../services/ink-ledger.service';
+import { reverseInkForRefund } from '../services/refund-ink.service';
 
 import {
   headers,
@@ -468,12 +470,40 @@ describe('(d) GET /payments inkReversalLinked', () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
-  it('linked through metadata.razorpayPaymentId alone', async () => {
+  it('Arjun C1: a razorpayPaymentId-only match is NOT linked: capped at added (0), one warn', async () => {
     const u = await seedUser();
-    await mkRow(u, 'pay_l2', { inkUnits: 0, inkReversedUnits: 200 });
+    const row = await mkRow(u, 'pay_l2', { inkUnits: 0, inkReversedUnits: 200 });
     await reversalRow(u, 'rfnd_l2', { grantLedgerId: 'led_2', razorpayPaymentId: 'pay_l2' });
+    const warn = jest.spyOn(logger, 'warn');
     const p = (await get(u)).body.payments[0];
-    expect([p.inkReversalLinked, p.inkReversedInk]).toEqual([true, 100]);
+    expect([p.inkReversalLinked, p.inkReversedInk, p.inkAddedInk, p.inkDelta]).toEqual([
+      false,
+      0,
+      0,
+      0,
+    ]);
+    const lines = warn.mock.calls.filter((c) => String(c[1]).includes('reversal exceeds added'));
+    expect(lines).toHaveLength(1);
+    expect(lines[0][0]).toEqual({
+      paymentId: String(row._id),
+      razorpayPaymentId: 'pay_l2',
+      addedUnits: 0,
+      storedReversedUnits: 200,
+    });
+  });
+
+  it('Arjun C1: a grantPaymentId match is linked and uncapped, whatever razorpayPaymentId names', async () => {
+    const u = await seedUser();
+    await mkRow(u, 'pay_l3', { inkUnits: 0, inkReversedUnits: 200 });
+    await reversalRow(u, 'rfnd_l3', {
+      grantLedgerId: 'led_3',
+      grantPaymentId: 'pay_l3',
+      razorpayPaymentId: 'pay_elsewhere',
+    });
+    const warn = jest.spyOn(logger, 'warn');
+    const p = (await get(u)).body.payments[0];
+    expect([p.inkReversalLinked, p.inkReversedInk, p.inkDelta]).toEqual([true, 100, -100]);
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it('not linked: no grantLedgerId, non-string grantLedgerId, pending state, other user, other payment', async () => {
@@ -543,5 +573,286 @@ describe('(d) GET /payments inkReversalLinked', () => {
       0,
       false,
     ]);
+  });
+});
+
+// ── 7. Arjun review C2: concurrent refunds of one grant ──────────────────────────────────
+
+describe('C2: two refunds of different payments never reverse more than the grant in total', () => {
+  const ORDER = 'order_c2';
+  const GRANT = 20;
+  const EXTRA = 30;
+
+  async function setup() {
+    const u = await seedUser();
+    await ledger().insertOne({
+      _id: `topup:${ORDER}` as never,
+      userId: u,
+      delta: GRANT,
+      reason: 'topup',
+      sourceBucket: 'topup',
+      balanceAfter: GRANT,
+      state: 'done',
+      metadata: { razorpayOrderId: ORDER },
+      createdAt: new Date(),
+    });
+    await User.updateOne({ _id: u }, { $set: { inkTopup: GRANT + EXTRA } });
+    for (const id of ['pay_A', 'pay_B']) {
+      await Payment.create({
+        userId: u,
+        kind: 'topup',
+        status: 'paid',
+        razorpayPaymentId: id,
+        razorpayOrderId: ORDER,
+        amountPaise: 19900,
+        refundedPaise: 0,
+        inkUnits: GRANT,
+        inkReversedUnits: 0,
+        source: 'webhook',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
+    return u;
+  }
+  const reverse = (paymentId: string, refundId: string) =>
+    reverseInkForRefund({ refundId, razorpayPaymentId: paymentId, refundPaise: 19900 });
+  const pendingClaim = (
+    u: mongoose.Types.ObjectId,
+    refundId: string,
+    dueUnits: number,
+    claimedAt = new Date(),
+    over: Record<string, unknown> = {},
+  ) =>
+    ledger().insertOne({
+      _id: `refund:${refundId}` as never,
+      userId: u,
+      delta: 0,
+      reason: 'refund_reversal',
+      state: 'pending',
+      claimedAt,
+      claimToken: 'tok',
+      createdAt: claimedAt,
+      metadata: {
+        razorpayPaymentId: 'pay_B',
+        refundId,
+        refundPaise: 19900,
+        dueUnits,
+        grantLedgerId: `topup:${ORDER}`,
+        grantPaymentId: 'pay_B',
+      },
+      ...over,
+    });
+  const totalTaken = async () =>
+    (await ledger().find({ reason: 'refund_reversal' }).toArray()).reduce(
+      (n, r) => n - (r.delta as number),
+      0,
+    );
+
+  /** Run `during` once, right after the inkledger claim row `refund:<refundId>` is inserted. */
+  function afterClaimInsert(refundId: string, during: () => Promise<unknown>) {
+    const proto = Object.getPrototypeOf(ledger()) as {
+      insertOne: (...a: unknown[]) => Promise<unknown>;
+    };
+    const orig = proto.insertOne;
+    let fired = false;
+    return jest.spyOn(proto, 'insertOne').mockImplementation(async function (
+      this: { collectionName: string },
+      ...a: unknown[]
+    ) {
+      const res = await orig.apply(this, a);
+      const doc = a[0] as { _id?: unknown };
+      if (!fired && this.collectionName === 'inkledger' && doc._id === `refund:${refundId}`) {
+        fired = true;
+        await during();
+      }
+      return res;
+    });
+  }
+
+  it("B finishes between A's pre-check and A's claim: A is capped to 0, total 20, extra Ink untouched", async () => {
+    const u = await setup();
+    // A's pre-check has passed (nothing reversed yet). B runs to completion before A's claim
+    // lands: B's done row is the only thing that can stop A.
+    const proto = Object.getPrototypeOf(ledger()) as {
+      insertOne: (...a: unknown[]) => Promise<unknown>;
+    };
+    const orig = proto.insertOne;
+    let fired = false;
+    jest.spyOn(proto, 'insertOne').mockImplementation(async function (
+      this: { collectionName: string },
+      ...a: unknown[]
+    ) {
+      const doc = a[0] as { _id?: unknown };
+      if (!fired && this.collectionName === 'inkledger' && doc._id === 'refund:rfnd_A') {
+        fired = true;
+        expect(await reverse('pay_B', 'rfnd_B')).toBe('reversed');
+      }
+      return orig.apply(this, a);
+    });
+    const out = await reverse('pay_A', 'rfnd_A');
+    jest.restoreAllMocks();
+    expect(fired).toBe(true);
+    // Observed: the outcome label is 'reversed' although A took 0 (the label uses the pre-cap
+    // dueUnits in refund-ink.service.ts); the ledger row and balances are what matter.
+    expect(out).toBe('reversed');
+    expect(await totalTaken()).toBe(GRANT);
+    expect(await ledger().findOne({ _id: 'refund:rfnd_B' as never })).toMatchObject({
+      delta: -GRANT,
+      state: 'done',
+    });
+    expect(await ledger().findOne({ _id: 'refund:rfnd_A' as never })).toMatchObject({
+      delta: -0,
+      state: 'done',
+      metadata: expect.objectContaining({ dueUnits: 0 }),
+    });
+    expect((await inkOf(u)).inkTopup).toBe(EXTRA);
+  });
+
+  it("B's claim is pending (in flight) when A's claim lands: A's dueUnits is lowered on the claim row, nothing over-taken", async () => {
+    const u = await setup();
+    const spy = afterClaimInsert('rfnd_A', () => pendingClaim(u, 'rfnd_B', 12));
+    const out = await reverse('pay_A', 'rfnd_A');
+    spy.mockRestore();
+    // 20 granted, 12 held by B's pending claim: A may take 8 only.
+    expect(out).toBe('reversed');
+    expect(await ledger().findOne({ _id: 'refund:rfnd_A' as never })).toMatchObject({
+      delta: -8,
+      state: 'done',
+      metadata: expect.objectContaining({ dueUnits: 8, debitedUnits: 8, shortfallUnits: 0 }),
+    });
+    expect((await inkOf(u)).inkTopup).toBe(GRANT + EXTRA - 8);
+    expect(await totalTaken()).toBe(8);
+  });
+
+  it('both claims in flight: each sees the other, together they take at most the grant', async () => {
+    const u = await setup();
+    const spy = afterClaimInsert('rfnd_A', () => pendingClaim(u, 'rfnd_B', GRANT));
+    await reverse('pay_A', 'rfnd_A');
+    spy.mockRestore();
+    expect(await totalTaken()).toBeLessThanOrEqual(GRANT);
+    expect((await inkOf(u)).inkTopup).toBeGreaterThanOrEqual(EXTRA);
+  });
+
+  it('a retried refundId is not blocked by its own pending claim (fresh: busy, not grant_already_reversed)', async () => {
+    const u = await setup();
+    await pendingClaim(u, 'rfnd_A', GRANT, new Date(), {
+      metadata: {
+        razorpayPaymentId: 'pay_A',
+        refundId: 'rfnd_A',
+        refundPaise: 19900,
+        dueUnits: GRANT,
+        grantLedgerId: `topup:${ORDER}`,
+        grantPaymentId: 'pay_A',
+      },
+    });
+    await expect(reverse('pay_A', 'rfnd_A')).rejects.toBeInstanceOf(GrantClaimBusyError);
+    expect(await totalTaken()).toBe(0);
+    expect((await inkOf(u)).inkTopup).toBe(GRANT + EXTRA);
+  });
+
+  it('a retried refundId whose own pending claim is stale -> stale_claim, no debit', async () => {
+    const u = await setup();
+    await pendingClaim(u, 'rfnd_A', GRANT, new Date(Date.now() - 24 * 3600 * 1000), {
+      metadata: {
+        razorpayPaymentId: 'pay_A',
+        refundId: 'rfnd_A',
+        refundPaise: 19900,
+        dueUnits: GRANT,
+        grantLedgerId: `topup:${ORDER}`,
+        grantPaymentId: 'pay_A',
+      },
+    });
+    expect(await reverse('pay_A', 'rfnd_A')).toBe('stale_claim');
+    expect((await inkOf(u)).inkTopup).toBe(GRANT + EXTRA);
+  });
+
+  it('a retried refundId whose own claim is done -> already_reversed, no second debit', async () => {
+    const u = await setup();
+    expect(await reverse('pay_A', 'rfnd_A')).toBe('reversed');
+    expect(await reverse('pay_A', 'rfnd_A')).toBe('already_reversed');
+    expect((await inkOf(u)).inkTopup).toBe(EXTRA);
+    expect(await totalTaken()).toBe(GRANT);
+  });
+
+  it('a STALE pending claim of another refund still counts against the grant (under-reverse)', async () => {
+    const u = await setup();
+    await pendingClaim(u, 'rfnd_old', 12, new Date(Date.now() - 24 * 3600 * 1000));
+    expect(await reverse('pay_A', 'rfnd_A')).toBe('reversed');
+    expect(await ledger().findOne({ _id: 'refund:rfnd_A' as never })).toMatchObject({
+      delta: -8,
+      metadata: expect.objectContaining({ dueUnits: 8 }),
+    });
+    expect((await inkOf(u)).inkTopup).toBe(GRANT + EXTRA - 8);
+    // The stale claim is left alone for a manual check.
+    expect(await ledger().findOne({ _id: 'refund:rfnd_old' as never })).toMatchObject({
+      state: 'pending',
+    });
+  });
+
+  it('a pending claim holding the whole grant -> grant_already_reversed before any claim of A', async () => {
+    const u = await setup();
+    await pendingClaim(u, 'rfnd_B', GRANT);
+    expect(await reverse('pay_A', 'rfnd_A')).toBe('grant_already_reversed');
+    expect(await ledger().findOne({ _id: 'refund:rfnd_A' as never })).toBeNull();
+    expect((await inkOf(u)).inkTopup).toBe(GRANT + EXTRA);
+  });
+
+  it("if the cap lookup throws, A's claim is rolled back and the error rethrown; no debit", async () => {
+    const u = await setup();
+    const proto = Object.getPrototypeOf(ledger()) as { find: (...a: unknown[]) => unknown };
+    const orig = proto.find;
+    let afterClaim = false;
+    const ins = afterClaimInsert('rfnd_A', async () => {
+      afterClaim = true;
+    });
+    jest.spyOn(proto, 'find').mockImplementation(function (
+      this: { collectionName: string },
+      ...a: unknown[]
+    ) {
+      if (afterClaim && this.collectionName === 'inkledger') throw new Error('cap exploded');
+      return orig.apply(this, a);
+    });
+    await expect(reverse('pay_A', 'rfnd_A')).rejects.toThrow('cap exploded');
+    ins.mockRestore();
+    jest.restoreAllMocks();
+    expect(await ledger().findOne({ _id: 'refund:rfnd_A' as never })).toBeNull();
+    expect((await inkOf(u)).inkTopup).toBe(GRANT + EXTRA);
+  });
+});
+
+// ── 8. Arjun's plan-side clamp: a legacy reversal alongside a linked one ─────────────────
+
+describe('plan-side clamp: only grant-linked reversal rows count against the grant', () => {
+  it('legacy reversal (no grantLedgerId) of another payment is ignored; the linked one (30) is counted', async () => {
+    const u = await seedUser();
+    await seedSub(u);
+    await webhook('subscription.charged', subPayload({ paymentId: 'pay_P1' }));
+    await User.updateOne({ _id: u }, { $inc: { inkSub: 100 } });
+    const grant = (await grantRows(u))[0];
+    const row = (id: string, refundId: string, dueUnits: number, meta: Record<string, unknown>) =>
+      ledger().insertOne({
+        _id: `refund:${refundId}` as never,
+        userId: u,
+        delta: -dueUnits,
+        reason: 'refund_reversal',
+        state: 'done',
+        metadata: { razorpayPaymentId: id, refundId, refundPaise: 1, dueUnits, ...meta },
+        createdAt: new Date(),
+      });
+    await row('pay_legacy', 'rfnd_legacy', 40, {});
+    await row('pay_P1b', 'rfnd_linked', 30, {
+      grantLedgerId: String(grant._id),
+      grantPaymentId: 'pay_P1b',
+    });
+    const res = await webhook('refund.processed', planRefund('pay_P1', 'rfnd_P1'));
+    expect(res.status).toBe(200);
+    // Observed: due = min(pro rata 100, grant 100 - linked 30) = 70; the 40 legacy is not counted.
+    expect(await ledger().findOne({ _id: 'refund:rfnd_P1' as never })).toMatchObject({
+      delta: -70,
+      state: 'done',
+      metadata: expect.objectContaining({ dueUnits: 70, grantLedgerId: String(grant._id) }),
+    });
+    expect((await inkOf(u)).inkSub).toBe(PLAN_UNITS + 100 - 70);
   });
 });

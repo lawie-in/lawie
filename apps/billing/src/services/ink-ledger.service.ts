@@ -936,12 +936,19 @@ export async function reverseRefundInk(input: {
    * payment that resolved to it. Written to metadata.grantLedgerId / metadata.grantPaymentId.
    */
   grant?: { ledgerId: string; paymentId: string };
+  /**
+   * Arjun review (condition 2): run AFTER this refund's claim row is inserted (so concurrent
+   * refunds see each other's pending claims) and before the debit. Returns the most this
+   * refund may still take; the claim's dueUnits is lowered to it. Concurrent refunds of one
+   * grant can then only under-reverse, never over-reverse.
+   */
+  capAfterClaim?: (dueUnits: number) => Promise<number>;
 }): Promise<RefundReversalResult> {
   const { userId, refundId, razorpayPaymentId, refundPaise, preferBucket } = input;
   const grantMeta = input.grant
     ? { grantLedgerId: input.grant.ledgerId, grantPaymentId: input.grant.paymentId }
     : {};
-  const dueUnits = Math.max(0, Math.floor(input.dueUnits));
+  let dueUnits = Math.max(0, Math.floor(input.dueUnits));
   if (!mongoose.Types.ObjectId.isValid(userId)) return { status: 'user_not_found' };
   const oid = new mongoose.Types.ObjectId(userId);
 
@@ -998,6 +1005,22 @@ export async function reverseRefundInk(input: {
       );
     }
   };
+
+  if (input.capAfterClaim) {
+    try {
+      const cap = Math.max(0, Math.floor(await input.capAfterClaim(dueUnits)));
+      if (cap < dueUnits) {
+        dueUnits = cap;
+        await ledger.updateOne(
+          { _id: claimId, claimToken, state: 'pending' },
+          { $set: { 'metadata.dueUnits': dueUnits } },
+        );
+      }
+    } catch (err) {
+      await rollbackClaim(err instanceof Error ? err.name : 'unknown');
+      throw err;
+    }
+  }
 
   let debited: Record<InkBucketField, number> = { inkSub: 0, inkAnnualCarry: 0, inkTopup: 0 };
   let totalAfter = 0;

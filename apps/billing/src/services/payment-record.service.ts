@@ -757,10 +757,8 @@ export async function listPaymentsForUser(userId: string): Promise<PaymentRowVie
           reason: REFUND_REVERSAL_REASON,
           state: 'done',
           'metadata.grantLedgerId': { $type: 'string' },
-          $or: [
-            { 'metadata.grantPaymentId': { $in: rzpIds } },
-            { 'metadata.razorpayPaymentId': { $in: rzpIds } },
-          ],
+          // Arjun review: linked ONLY by the payment that resolved to the grant.
+          'metadata.grantPaymentId': { $in: rzpIds },
         },
         { projection: { metadata: 1 } },
       )
@@ -768,9 +766,8 @@ export async function listPaymentsForUser(userId: string): Promise<PaymentRowVie
     const wanted = new Set(rzpIds);
     for (const l of linkRows) {
       const m = (l.metadata ?? {}) as Record<string, unknown>;
-      for (const v of [m.grantPaymentId, m.razorpayPaymentId]) {
-        if (typeof v === 'string' && wanted.has(v)) linked.add(v);
-      }
+      const v = m.grantPaymentId;
+      if (typeof v === 'string' && wanted.has(v)) linked.add(v);
     }
   }
   // The newest concern per payment.

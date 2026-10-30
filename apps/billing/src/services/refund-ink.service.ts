@@ -186,8 +186,9 @@ async function grantedFor(
 
 /**
  * Arjun option B: units already reversed against one grant row, across ALL payments and
- * refunds (done refund_reversal rows naming it in metadata.grantLedgerId), this refund
- * excluded. Counts each row's dueUnits (what was charged against the grant), so a shortfall
+ * refunds (done AND pending refund_reversal rows naming it in metadata.grantLedgerId; a
+ * pending row is another refund in flight, Arjun review condition 2), this refund excluded
+ * (its own claim never blocks its own retry). Counts each row's dueUnits (what was charged against the grant), so a shortfall
  * is not tried again through another payment row. userId first: the inkledger
  * {userId: 1, createdAt: -1} index (T-519).
  */
@@ -204,7 +205,7 @@ async function reversedAgainstGrant(
       {
         userId: new mongoose.Types.ObjectId(userId),
         reason: REFUND_REVERSAL_REASON,
-        state: 'done',
+        state: { $in: ['done', 'pending'] },
         'metadata.grantLedgerId': grantLedgerId,
         'metadata.refundId': { $ne: refundId },
       },
@@ -312,7 +313,19 @@ export async function reverseInkForRefund(input: {
     dueUnits,
     preferBucket: granted.kind === 'topup' ? 'topup' : 'sub',
     ...(granted.grantLedgerId
-      ? { grant: { ledgerId: granted.grantLedgerId, paymentId: razorpayPaymentId } }
+      ? {
+          grant: { ledgerId: granted.grantLedgerId, paymentId: razorpayPaymentId },
+          // Re-check once this refund's claim is in, counting other refunds' claims too.
+          capAfterClaim: async () => {
+            const grantUnits = granted.grantLedgerUnits ?? granted.grantedUnits;
+            const others = await reversedAgainstGrant(
+              granted.userId,
+              granted.grantLedgerId as string,
+              refundId,
+            );
+            return Math.max(0, grantUnits - others);
+          },
+        }
       : {}),
   });
 
