@@ -22,3 +22,6 @@ For Ajay: everything above. The pricing FAQ answer is the public claim; the in-a
 - In-app strings stay as merged; moving to this wording needs a ticket.
 - Help text, not-enough-Ink and failed lines: signed, with "You can revise a draft up to 10 times." added to the help text.
 - Pricing FAQ: signed with "You can revise a draft up to 10 times." added. The 10 is CONFIRMED against the code (Priya, 30 Oct: the cap is 10 revisions per draft; the 5 is only how many old versions are kept). Live only after Anushka's prod PASS.
+
+## Ajay, 30 Oct (via Priya): revisions ship DARK
+v1.3.1 is on main, but revisions are switched off. The revision FAQ and any public claim about revisions stay off the site, ads and deck until the switch is on in prod and Anushka has passed it. Priya will say when.
