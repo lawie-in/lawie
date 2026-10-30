@@ -28,3 +28,6 @@ Off/on through T-356's reader; anything but `on` is off.
 2. Close them too. `applyAnswers` and `updateBrief` reject a hidden kind with the same 404 through the exported guard, so no brief can be started or continued for a hidden kind and dead-end at generate. Priya extends the claim with `intake.routes.ts` for those two handlers only.
 
 **Arjun (13 Oct):** the fixture account sees every switch as on, generation included — T-356's rule, no special case for the template switch. Its drafts are `runType: fixture` and filtered everywhere, and the golden set needs the plaint fixtures to keep running.
+
+## /tools 404s (audit P0 from Rajesh, 30 Oct 2026; Arjun's diagnosis)
+This is not a build bug. The T-375 switches feature.tool_bail_checker and feature.tool_timeline are off in prod, but the footer and the /tools index still link to both tools. Next month the team picks one: switch them on (after Anushka checks both tools), or hide the links (a small v1.3.2 change). Nothing started.
