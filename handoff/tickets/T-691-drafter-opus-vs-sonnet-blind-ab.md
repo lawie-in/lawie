@@ -41,3 +41,11 @@ Runner = Shashank, in his own session (not a crew agent). README §Operator word
 "The runner is Shashank. He runs `--real` once with AB_ARJUN_GO=1, never opens scoring/, vikram/ or the key file, and forwards: scoring/ (drafts only, model hidden, random order) to Anushka and Ajay; vikram/ + the console cost lines to Vikram; the key file to Arjun. The holding rule (nobody holds any two of scoring, costs, key) binds the recipients until Arjun opens the key after Anushka's and Ajay's scores are in. If Shashank must open any artefact to debug a failed run, he says so in the ticket and the run is void."
 Also: at the end of the run the harness prints a SHA-256 of the key file to the console, so Arjun can confirm it was not altered.
 Then a fresh reviewer, and Arjun gives AB_ARJUN_GO after reading Ajay's signed fixtures.
+
+## Run handover (Arjun, 30 Oct 2026; go given 12:25 UTC, AB_ARJUN_GO=1)
+- Outputs are committed unopened to branch `ab/t-691-run-20261030`. It is never merged, and is deleted after Arjun opens the key.
+- Shashank reads scoring/ only, to send the blind drafts to Anushka (she has no repo access).
+- Ajay reads scoring/ from the branch. Vikram reads vikram/ (costs).
+- Arjun reads the sealed key file only after both scores are in.
+- Shashank sends Priya the key file's SHA-256 and the branch name for this ticket.
+- Scoring falls under the 75% stop rule: if the stop hits first, the drafts keep and are scored next month.
